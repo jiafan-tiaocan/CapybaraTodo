@@ -2,7 +2,7 @@
 set -euo pipefail
 
 LABEL="com.jiafan.desktop-todo-daemon"
-APP_PATH="${DESKTOP_TODO_INSTALL_DIR:-$HOME/Applications}/DesktopTodoDaemon.app"
+APP_PATH="${DESKTOP_TODO_INSTALL_DIR:-$HOME/Applications}/CapybaraTodo.app"
 PLIST_PATH="$HOME/Library/LaunchAgents/$LABEL.plist"
 FAILED=0
 
@@ -24,16 +24,16 @@ check "LaunchAgent 指向稳定安装路径" /usr/bin/grep -Fq "$APP_PATH" "$PLI
 check "LaunchAgent 已加载" launchctl print "gui/$(id -u)/$LABEL"
 
 for _ in {1..50}; do
-  if pgrep -f 'DesktopTodoDaemon.app/Contents/MacOS/DesktopTodoDaemon$' >/dev/null; then
+  if pgrep -f '(CapybaraTodo|DesktopTodoDaemon).app/Contents/MacOS/DesktopTodoDaemon$' >/dev/null; then
     break
   fi
   sleep 0.1
 done
-check "应用正在运行" pgrep -f 'DesktopTodoDaemon.app/Contents/MacOS/DesktopTodoDaemon$'
+check "应用正在运行" pgrep -f '(CapybaraTodo|DesktopTodoDaemon).app/Contents/MacOS/DesktopTodoDaemon$'
 
 if (( FAILED )); then
   echo "健康检查未通过，请重新运行 ./install.sh。" >&2
   exit 1
 fi
 
-echo "DesktopTodoDaemon 安装与登录自启正常。"
+echo "卡皮待办安装与登录自启正常。"

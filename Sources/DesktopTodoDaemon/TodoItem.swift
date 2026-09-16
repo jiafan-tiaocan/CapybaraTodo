@@ -84,3 +84,25 @@ struct TodoItem: Identifiable, Equatable, Sendable {
             || title.contains("紧急")
     }
 }
+
+enum TodoHistory {
+    static func completed(
+        _ items: [TodoItem],
+        withinLastDays dayCount: Int,
+        now: Date = .now,
+        calendar: Calendar = .current
+    ) -> [TodoItem] {
+        guard dayCount > 0 else { return [] }
+        let today = calendar.startOfDay(for: now)
+        guard let cutoff = calendar.date(byAdding: .day, value: -(dayCount - 1), to: today) else {
+            return []
+        }
+        return items
+            .filter {
+                $0.status == .completed
+                    && ($0.completedAt ?? .distantPast) >= cutoff
+                    && ($0.completedAt ?? .distantFuture) <= now
+            }
+            .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+    }
+}

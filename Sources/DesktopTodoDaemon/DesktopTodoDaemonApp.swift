@@ -119,8 +119,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             button.image?.size = NSSize(width: 18, height: 18)
             button.imagePosition = .imageLeading
             button.imageHugsTitle = true
-            button.toolTip = "卡皮巴拉待办"
-            button.setAccessibilityLabel("卡皮巴拉待办")
+            button.toolTip = "卡皮待办"
+            button.setAccessibilityLabel("卡皮待办")
         }
 
         let menu = NSMenu()
@@ -150,7 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "退出桌面待办",
+            title: "退出卡皮待办",
             action: #selector(terminateApp),
             keyEquivalent: "q"
         )
@@ -229,7 +229,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         let pendingRestartRows = pendingRestartSectionExpanded ? min(model.pendingRestartCount, 8) : 0
         let pendingRestartRowsHeight = CGFloat(pendingRestartRows) * 36
         let completedHeaderHeight: CGFloat = model.completedCount > 0 ? 34 : 0
-        let completedRows = completedSectionExpanded ? min(model.completedCount, 8) : 0
+        let completedRows = completedSectionExpanded ? min(model.recentCompletedItems.count, 8) : 0
         let completedRowsHeight = CGFloat(completedRows) * 44
         let hasFeedback = model.canUndoLastCompletion || model.canUndoLastDelete
         let undoHeight: CGFloat = hasFeedback ? 40 : 0

@@ -49,6 +49,14 @@ final class TodoModel: ObservableObject {
         }
     }
 
+    var recentCompletedItems: [TodoItem] {
+        TodoHistory.completed(items, withinLastDays: 7)
+    }
+
+    var olderCompletedCount: Int {
+        max(completedCount - recentCompletedItems.count, 0)
+    }
+
     var canUndoLastCompletion: Bool {
         guard let id = lastCompletedItemID else { return false }
         return items.contains { $0.id == id && $0.status == .completed }

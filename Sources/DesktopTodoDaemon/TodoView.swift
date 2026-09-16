@@ -9,6 +9,7 @@ struct TodoView: View {
     @State private var isHovering = false
     @State private var showPendingRestart = false
     @State private var showCompleted = false
+    @State private var showAllCompleted = false
     @State private var editingItemID: UUID?
     @State private var editingTitle = ""
     @State private var hoveredDragHandleID: UUID?
@@ -283,7 +284,7 @@ struct TodoView: View {
         if model.completedCount > 0 {
             Divider().opacity(0.18).padding(.vertical, 4)
             sectionToggle(
-                title: "已完成 \(model.completedCount)",
+                title: completedSectionTitle,
                 isExpanded: showCompleted,
                 expandedHelp: "收起已完成",
                 collapsedHelp: "展开已完成"
@@ -292,7 +293,7 @@ struct TodoView: View {
             }
 
             if showCompleted {
-                ForEach(model.completedItems) { item in
+                ForEach(visibleCompletedItems) { item in
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(alignment: .top, spacing: 8) {
                             Button {
@@ -330,8 +331,40 @@ struct TodoView: View {
                     .padding(.horizontal, 4)
                     .id("completed-\(item.id.uuidString)")
                 }
+
+                if model.olderCompletedCount > 0 {
+                    Button {
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            showAllCompleted.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: showAllCompleted ? "clock.arrow.circlepath" : "clock")
+                            Text(showAllCompleted ? "仅显示近 7 天" : "查看更早的 \(model.olderCompletedCount) 项")
+                        }
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .help(showAllCompleted ? "收起 7 天前的完成记录" : "显示全部完成记录")
+                }
             }
         }
+    }
+
+    private var completedSectionTitle: String {
+        if showAllCompleted {
+            return "已完成 · 全部 \(model.completedCount)"
+        }
+        if model.olderCompletedCount > 0 {
+            return "已完成 · 近 7 天 \(model.recentCompletedItems.count) · 共 \(model.completedCount)"
+        }
+        return "已完成 · 近 7 天 \(model.recentCompletedItems.count)"
+    }
+
+    private var visibleCompletedItems: [TodoItem] {
+        showAllCompleted ? model.completedItems : model.recentCompletedItems
     }
 
     private func sectionToggle(

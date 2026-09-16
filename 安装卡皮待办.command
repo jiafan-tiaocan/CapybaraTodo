@@ -3,7 +3,7 @@ set -u
 
 PROJECT_DIR="${0:A:h}"
 clear
-echo "桌面待办 · 安装或更新"
+echo "卡皮待办 · 安装或更新"
 echo "应用和待办数据都只保存在这台 Mac。"
 echo
 

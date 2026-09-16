@@ -5,7 +5,7 @@ LABEL="com.jiafan.desktop-todo-daemon"
 PLIST_PATH="$HOME/Library/LaunchAgents/$LABEL.plist"
 
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
-pkill -f 'DesktopTodoDaemon.app/Contents/MacOS/DesktopTodoDaemon$' 2>/dev/null || true
+pkill -f '(CapybaraTodo|DesktopTodoDaemon).app/Contents/MacOS/DesktopTodoDaemon$' 2>/dev/null || true
 if [[ -f "$PLIST_PATH" ]]; then
   mv "$PLIST_PATH" "$HOME/.Trash/$LABEL.plist"
 fi

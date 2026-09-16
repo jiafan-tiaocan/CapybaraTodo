@@ -1,0 +1,10 @@
+卡皮待办安装说明
+
+1. 将“卡皮待办.app”拖入旁边的 Applications 文件夹。
+2. 在“应用程序”中打开卡皮待办。
+3. 卡皮巴拉会出现在 Mac 顶部菜单栏，点击可显示或隐藏待办窗口。
+
+当前内部测试包使用本地临时签名。如果 macOS 提示无法验证开发者，请不要关闭系统安全保护；改用源码安装，或联系维护者获取 Developer ID 签名并经 Apple 公证的版本。
+
+源码与问题反馈：
+https://github.com/jiafan-tiaocan/desktop-todo-daemon

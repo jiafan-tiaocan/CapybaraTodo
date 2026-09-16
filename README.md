@@ -1,12 +1,12 @@
-# DesktopTodoDaemon
+# 卡皮待办 / CapybaraTodo
 
-macOS 原生桌面待办小窗：半透明、无边框、跨桌面置顶。点击复选圆圈标记完成，状态写入本地 Markdown 文档。
+macOS 原生桌面待办小窗：半透明、无边框、跨桌面置顶。中文系统显示“卡皮待办”，英文系统显示“CapybaraTodo”。点击复选圆圈标记完成，状态写入本地 Markdown 文档。
 
 ## 功能
 
-- 在普通桌面空间置顶，不进入浏览器等应用的全屏空间，也不显示 Dock 图标
+- 在普通桌面空间置顶，不进入浏览器等应用的全屏空间；运行时在 Dock 显示卡皮巴拉 App 图标
 - 菜单栏使用眯眼侧身卡皮巴拉模板图标；待办窗口标题区的全身像素卡皮巴拉会以低频步态持续前走
-- 菜单栏用“卡皮巴拉 + 未完成数量”显示固定入口，收起浮窗后可从这里恢复；再次打开“桌面待办”也会恢复浮窗
+- 菜单栏用“卡皮巴拉 + 未完成数量”显示固定入口，收起浮窗后可从这里恢复；再次打开“卡皮待办”也会恢复浮窗
 - 拖动顶部标题栏移动窗口并记住位置；列表区域不会带动整窗
 - 长标题自动换行，窗口按列表的真实渲染高度增长，最高可增长到 780 px，超出后改为内部滚动
 - 输入并回车添加待办
@@ -15,6 +15,7 @@ macOS 原生桌面待办小窗：半透明、无边框、跨桌面置顶。点�
 - 只点击复选圆圈才会完成，支持即时撤销和从“已完成”列表恢复；撤销提示 4 秒后自动收起
 - 进行中事项可移入折叠的“待重启”分区，之后可恢复到进行中或直接标记完成
 - 展开“已完成”时窗口会随内容增高，收起后恢复紧凑高度
+- 已完成默认只显示近 7 个自然日，按完成时间倒序；需要时可展开更早记录
 - 已完成事项显示本地时区下的创建时间和完成时间，精确到小时
 - 进行中、待重启和已完成事项都可原位编辑或删除；删除后可在 4 秒内撤销
 - 每条进行中或待重启事项右侧都有“过程”按钮，可直接输入一层过程节点；节点支持单独完成、恢复、编辑和删除
@@ -44,7 +45,7 @@ macOS 原生桌面待办小窗：半透明、无边框、跨桌面置顶。点�
 需要 macOS 14 或更高版本。推荐把整个源码目录发给同事，让对方双击：
 
 ```text
-安装桌面待办.command
+安装卡皮待办.command
 ```
 
 安装脚本会检查 Apple 命令行开发工具；如果尚未安装，会打开系统安装窗口，完成后再双击一次即可。这样每个人都在自己的 Mac 上编译，不需要传递会被 Gatekeeper 拦截的临时签名 `.app`。
@@ -57,7 +58,7 @@ macOS 原生桌面待办小窗：半透明、无边框、跨桌面置顶。点�
 
 安装器会完成编译、本地签名、安装和登录自启：
 
-- 应用安装到 `~/Applications/DesktopTodoDaemon.app`，移动或删除源码仓库不会影响运行。
+- 应用安装到 `~/Applications/CapybaraTodo.app`，移动或删除源码仓库不会影响运行。
 - LaunchAgent 安装到 `~/Library/LaunchAgents/com.jiafan.desktop-todo-daemon.plist`。
 - 重复运行同一命令即可安全更新已安装版本。
 - 源码保留在原目录，可直接修改；修改后再次双击安装入口即可重新编译和更新。
@@ -67,6 +68,26 @@ macOS 原生桌面待办小窗：半透明、无边框、跨桌面置顶。点�
 ```bash
 ./scripts/doctor.sh
 ```
+
+### DMG 分发
+
+生成当前 Mac 架构的 DMG：
+
+```bash
+./scripts/package-dmg.sh
+```
+
+产物位于 `dist/`。DMG 内包含应用、Applications 快捷方式和安装说明。
+
+临时签名 DMG 适合本机验收，但从网络传到其他 Mac 后仍可能被 Gatekeeper 拦截。真正面向同事直接安装时，需要 Developer ID 签名并经 Apple 公证：
+
+```bash
+DESKTOP_TODO_SIGN_IDENTITY="Developer ID Application: 姓名或组织 (TEAMID)" \
+DESKTOP_TODO_NOTARY_PROFILE="notary-profile" \
+./scripts/package-dmg.sh
+```
+
+脚本会提交公证、等待结果并把票据装订到 DMG。没有分发证书时，继续使用前面的源码安装方式。
 
 ## 换机与数据迁移
 
@@ -102,7 +123,7 @@ swift run
 
 ```bash
 ./scripts/build-app.sh
-open build/DesktopTodoDaemon.app
+open build/CapybaraTodo.app
 ```
 
 也可直接调用底层安装脚本：
@@ -111,7 +132,7 @@ open build/DesktopTodoDaemon.app
 ./scripts/install-launch-agent.sh
 ```
 
-停止并取消自动启动，可双击 `卸载桌面待办.command`，也可以执行：
+停止并取消自动启动，可双击 `卸载卡皮待办.command`，也可以执行：
 
 ```bash
 ./scripts/uninstall-launch-agent.sh
@@ -122,5 +143,5 @@ open build/DesktopTodoDaemon.app
 ## 内部分享说明
 
 - 当前仓库适合通过 GitHub 私有仓库邀请成员，或直接发送完整源码压缩包。
-- 不要只发送 `build/DesktopTodoDaemon.app`：当前内部流程采用本机临时签名，下载到另一台 Mac 后可能被 Gatekeeper 阻止。
+- 没有 Developer ID 时不要只发送 `build/CapybaraTodo.app` 或临时签名 DMG：下载到另一台 Mac 后可能被 Gatekeeper 阻止。
 - 项目采用 MIT License，同事可以保留来源后修改和再分发。

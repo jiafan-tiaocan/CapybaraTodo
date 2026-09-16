@@ -209,3 +209,39 @@ guard MarkdownTodoStore.defaultDocumentURL.path.contains("/Documents/桌面待�
 }
 
 print("自定义 Markdown 内容保留与通用默认路径校验通过")
+
+var historyCalendar = Calendar(identifier: .gregorian)
+historyCalendar.timeZone = TimeZone(secondsFromGMT: 8 * 3_600)!
+let historyNow = historyCalendar.date(from: DateComponents(
+    year: 2026,
+    month: 9,
+    day: 16,
+    hour: 15
+))!
+let recentOlder = TodoItem(
+    title: "七天范围内较早完成",
+    completedAt: historyCalendar.date(byAdding: .day, value: -6, to: historyNow)
+)
+let recentNewer = TodoItem(
+    title: "今天完成",
+    completedAt: historyCalendar.date(byAdding: .hour, value: -1, to: historyNow)
+)
+let tooOld = TodoItem(
+    title: "七天前完成",
+    completedAt: historyCalendar.date(byAdding: .day, value: -7, to: historyNow)
+)
+let future = TodoItem(
+    title: "未来时间异常",
+    completedAt: historyCalendar.date(byAdding: .hour, value: 1, to: historyNow)
+)
+let recentHistory = TodoHistory.completed(
+    [recentOlder, future, tooOld, recentNewer],
+    withinLastDays: 7,
+    now: historyNow,
+    calendar: historyCalendar
+)
+guard recentHistory.map(\.title) == ["今天完成", "七天范围内较早完成"] else {
+    fatalError("近 7 天完成记录筛选或时间倒序失败")
+}
+
+print("近 7 天完成记录与倒序校验通过")
