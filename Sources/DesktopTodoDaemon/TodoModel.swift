@@ -72,6 +72,13 @@ final class TodoModel: ObservableObject {
         restore(item)
     }
 
+    func setPriority(_ priority: TodoPriority, for item: TodoItem) {
+        reloadIfChanged()
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index].priority = priority
+        persist()
+    }
+
     func reload() {
         do {
             items = try store.load(from: documentURL)

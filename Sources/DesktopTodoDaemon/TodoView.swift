@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TodoView: View {
     @ObservedObject var model: TodoModel
+    let onHide: () -> Void
     @State private var newTodo = ""
     @State private var isHovering = false
     @State private var showCompleted = false
@@ -44,6 +45,12 @@ struct TodoView: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
             Spacer()
+            Button(action: onHide) {
+                Image(systemName: "minus.circle")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("收起到菜单栏")
             Menu {
                 Button("打开记录文档", action: model.openDocument)
                 Button("更换记录文档…", action: model.chooseDocument)
@@ -78,18 +85,41 @@ struct TodoView: View {
                             } label: {
                                 Image(systemName: "circle")
                                     .font(.system(size: 13))
+                                    .foregroundStyle(item.needsHighPriorityHighlight ? highPriorityAccent : .secondary)
                                     .padding(.top, 2)
                             }
                             .buttonStyle(.plain)
                             .help("标记为已完成")
                             Text(item.title)
                                 .font(.system(size: 13))
+                                .fontWeight(item.needsHighPriorityHighlight ? .medium : .regular)
                                 .multilineTextAlignment(.leading)
                                 .textSelection(.enabled)
                             Spacer(minLength: 0)
+                            if item.needsHighPriorityHighlight && item.priority != .p0 {
+                                Text("重点")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(highPriorityAccent)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(highPriorityAccent.opacity(0.1), in: Capsule())
+                            }
+                            priorityMenu(for: item)
                         }
                         .padding(.vertical, 4)
                         .padding(.horizontal, 3)
+                        .background {
+                            if item.needsHighPriorityHighlight {
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                    .fill(highPriorityAccent.opacity(0.075))
+                                    .overlay(alignment: .leading) {
+                                        Capsule()
+                                            .fill(highPriorityAccent)
+                                            .frame(width: 3)
+                                            .padding(.vertical, 4)
+                                    }
+                            }
+                        }
                     }
                 }
 
@@ -150,6 +180,52 @@ struct TodoView: View {
         .padding(.horizontal, 9)
         .padding(.vertical, 6)
         .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var highPriorityAccent: Color {
+        Color(red: 0.86, green: 0.24, blue: 0.18)
+    }
+
+    private func priorityMenu(for item: TodoItem) -> some View {
+        Menu {
+            ForEach(TodoPriority.allCases, id: \.rawValue) { priority in
+                Button {
+                    model.setPriority(priority, for: item)
+                } label: {
+                    if item.priority == priority {
+                        Label(priority == .none ? "无优先级" : priority.label, systemImage: "checkmark")
+                    } else {
+                        Text(priority == .none ? "无优先级" : priority.label)
+                    }
+                }
+            }
+        } label: {
+            if item.priority == .none {
+                Image(systemName: "flag")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .frame(width: 22, height: 20)
+            } else {
+                Text(item.priority.label)
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundStyle(priorityColor(item.priority))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(priorityColor(item.priority).opacity(0.11), in: Capsule())
+            }
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help("设置优先级")
+    }
+
+    private func priorityColor(_ priority: TodoPriority) -> Color {
+        switch priority {
+        case .p0: highPriorityAccent
+        case .p1: Color(red: 0.82, green: 0.48, blue: 0.08)
+        case .p2: Color(red: 0.19, green: 0.46, blue: 0.78)
+        case .p3, .none: .secondary
+        }
     }
 
     private var addField: some View {

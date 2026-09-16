@@ -6,20 +6,13 @@
     <string>com.jiafan.desktop-todo-daemon</string>
     <key>ProgramArguments</key>
     <array>
-        <string>__APP_PATH__/Contents/MacOS/DesktopTodoDaemon</string>
+        <string>/usr/bin/open</string>
+        <string>-g</string>
+        <string>__APP_PATH__</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
-    <key>KeepAlive</key>
-    <dict>
-        <key>SuccessfulExit</key>
-        <false/>
-    </dict>
     <key>ProcessType</key>
     <string>Interactive</string>
-    <key>StandardOutPath</key>
-    <string>/tmp/desktop-todo-daemon.log</string>
-    <key>StandardErrorPath</key>
-    <string>/tmp/desktop-todo-daemon.error.log</string>
 </dict>
 </plist>

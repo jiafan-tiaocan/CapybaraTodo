@@ -1,16 +1,51 @@
 import Foundation
 
+enum TodoPriority: String, CaseIterable, Sendable {
+    case none
+    case p0
+    case p1
+    case p2
+    case p3
+
+    var label: String {
+        switch self {
+        case .none: "无"
+        case .p0: "P0"
+        case .p1: "P1"
+        case .p2: "P2"
+        case .p3: "P3"
+        }
+    }
+}
+
 struct TodoItem: Identifiable, Equatable, Sendable {
     let id: UUID
     var title: String
     var createdAt: Date
     var completedAt: Date?
+    var priority: TodoPriority
 
-    init(id: UUID = UUID(), title: String, createdAt: Date = .now, completedAt: Date? = nil) {
+    init(
+        id: UUID = UUID(),
+        title: String,
+        createdAt: Date = .now,
+        completedAt: Date? = nil,
+        priority: TodoPriority = .none
+    ) {
         self.id = id
         self.title = title
         self.createdAt = createdAt
         self.completedAt = completedAt
+        self.priority = priority
+    }
+
+    var needsHighPriorityHighlight: Bool {
+        guard completedAt == nil else { return false }
+        if priority == .p0 { return true }
+        let normalizedTitle = title.lowercased()
+        return normalizedTitle.contains("p0")
+            || title.contains("高优")
+            || title.contains("重要")
+            || title.contains("紧急")
     }
 }
-

@@ -7,22 +7,43 @@ struct DesktopTodoDaemonApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
+        MenuBarExtra {
+            Button(appDelegate.panelVisible ? "隐藏待办 · \(appDelegate.activeCount) 项" : "显示待办 · \(appDelegate.activeCount) 项") {
+                appDelegate.togglePanelVisibility()
+            }
+            Button("打开记录文档") {
+                appDelegate.openTodoDocument()
+            }
+            Divider()
+            Button("退出桌面待办") {
+                NSApp.terminate(nil)
+            }
+            .keyboardShortcut("q")
+        } label: {
+            Label("桌面待办", systemImage: "checklist")
+        }
+        .menuBarExtraStyle(.menu)
+
         Settings { EmptyView() }
     }
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
+    @Published private(set) var activeCount = 0
+    @Published private(set) var panelVisible = true
+
     private var panel: FloatingPanel?
     private var model: TodoModel?
     private var modelChangeSubscription: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
-
         let model = TodoModel()
         self.model = model
-        let hostingView = NSHostingView(rootView: TodoView(model: model))
+        activeCount = model.activeItems.count
+        let hostingView = NSHostingView(rootView: TodoView(model: model) { [weak self] in
+            self?.hidePanel()
+        })
         let panelSize = NSSize(width: 320, height: preferredPanelHeight(for: model))
         hostingView.setFrameSize(panelSize)
         hostingView.autoresizingMask = [.width, .height]
@@ -64,6 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         modelChangeSubscription = model.objectWillChange.sink { [weak self] _ in
             DispatchQueue.main.async {
                 self?.resizePanelToFitContent()
+                self?.activeCount = self?.model?.activeItems.count ?? 0
             }
         }
     }
@@ -76,6 +98,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             x: visible.maxX - size.width - 24,
             y: visible.maxY - size.height - 24
         ))
+    }
+
+    @objc func togglePanelVisibility() {
+        guard let panel else { return }
+        if panel.isVisible {
+            hidePanel()
+        } else {
+            panel.orderFrontRegardless()
+            NSApp.activate(ignoringOtherApps: true)
+            panelVisible = true
+        }
+    }
+
+    @objc func openTodoDocument() {
+        model?.openDocument()
+    }
+
+    private func hidePanel() {
+        panel?.orderOut(nil)
+        panelVisible = false
     }
 
     private func preferredPanelHeight(for model: TodoModel) -> CGFloat {

@@ -7,6 +7,7 @@ struct MarkdownTodoStore {
     private let dateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
+        formatter.timeZone = .current
         return formatter
     }()
 
@@ -52,7 +53,7 @@ struct MarkdownTodoStore {
         var lines = [
             "# 桌面待办",
             "",
-            "> 本文件由 DesktopTodoDaemon 维护，也可直接编辑。时间采用 ISO 8601 格式。",
+            "> 本文件由 DesktopTodoDaemon 维护，也可直接编辑。时间采用带本地时区偏移的 ISO 8601 格式。",
             "",
             "## 进行中",
             ""
@@ -68,12 +69,23 @@ struct MarkdownTodoStore {
     }
 
     private func activeLine(_ item: TodoItem) -> String {
-        "- [ ] \(sanitize(item.title)) <!-- id:\(item.id.uuidString) created:\(dateFormatter.string(from: item.createdAt)) -->"
+        "- [ ] \(sanitize(item.title)) \(metadata(for: item))"
     }
 
     private func completedLine(_ item: TodoItem) -> String {
         let completed = dateFormatter.string(from: item.completedAt ?? .now)
-        return "- [x] \(sanitize(item.title)) — 完成于 \(completed) <!-- id:\(item.id.uuidString) created:\(dateFormatter.string(from: item.createdAt)) -->"
+        return "- [x] \(sanitize(item.title)) — 完成于 \(completed) \(metadata(for: item))"
+    }
+
+    private func metadata(for item: TodoItem) -> String {
+        var fields = [
+            "id:\(item.id.uuidString)",
+            "created:\(dateFormatter.string(from: item.createdAt))"
+        ]
+        if item.priority != .none {
+            fields.append("priority:\(item.priority.rawValue)")
+        }
+        return "<!-- \(fields.joined(separator: " ")) -->"
     }
 
     private func parse(line: String, sectionCompleted: Bool) -> TodoItem? {
@@ -83,6 +95,7 @@ struct MarkdownTodoStore {
 
         var id = UUID()
         var createdAt = Date()
+        var priority = TodoPriority.none
         if let metadataStart = body.range(of: "<!--"), let metadataEnd = body.range(of: "-->") {
             let metadata = String(body[metadataStart.upperBound..<metadataEnd.lowerBound])
             for token in metadata.split(separator: " ") {
@@ -90,6 +103,9 @@ struct MarkdownTodoStore {
                     id = parsed
                 } else if token.hasPrefix("created:"), let parsed = dateFormatter.date(from: String(token.dropFirst(8))) {
                     createdAt = parsed
+                } else if token.hasPrefix("priority:"),
+                          let parsed = TodoPriority(rawValue: String(token.dropFirst(9)).lowercased()) {
+                    priority = parsed
                 }
             }
             body.removeSubrange(metadataStart.lowerBound..<metadataEnd.upperBound)
@@ -106,7 +122,13 @@ struct MarkdownTodoStore {
 
         let title = body.trimmingCharacters(in: .whitespaces)
         guard !title.isEmpty else { return nil }
-        return TodoItem(id: id, title: title, createdAt: createdAt, completedAt: completedAt)
+        return TodoItem(
+            id: id,
+            title: title,
+            createdAt: createdAt,
+            completedAt: completedAt,
+            priority: priority
+        )
     }
 
     private func sanitize(_ title: String) -> String {
