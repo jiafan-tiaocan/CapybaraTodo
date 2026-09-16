@@ -4,6 +4,7 @@ import SwiftUI
 
 enum TodoPanelLayout {
     static let width: CGFloat = 468
+    static let maximumHeight: CGFloat = 780
 }
 
 @main
@@ -161,7 +162,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             + completedHeaderHeight
             + completedRowsHeight
         let listHeight = measuredListContentHeight ?? estimatedListHeight
-        return min(520, max(190, baseHeight + listHeight + undoHeight))
+        let screenHeight = (panel?.screen ?? NSScreen.main)?.visibleFrame.height
+            ?? TodoPanelLayout.maximumHeight
+        let availableMaximum = min(TodoPanelLayout.maximumHeight, screenHeight - 48)
+        return min(availableMaximum, max(190, baseHeight + listHeight + undoHeight))
     }
 
     private func resizePanelToFitContent() {
