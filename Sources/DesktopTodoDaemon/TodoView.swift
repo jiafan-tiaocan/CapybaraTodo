@@ -51,11 +51,7 @@ struct TodoView: View {
     private var header: some View {
         HStack(spacing: 8) {
             HStack(spacing: 8) {
-                Image(nsImage: PixelCapybaraLogo.image)
-                    .interpolation(.none)
-                    .resizable()
-                    .frame(width: 42, height: 28)
-                    .accessibilityHidden(true)
+                WalkingCapybaraLogo()
                 Text("待办")
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                 Text("\(model.activeItems.count)")
