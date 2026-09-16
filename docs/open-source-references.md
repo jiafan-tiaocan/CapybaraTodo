@@ -10,7 +10,7 @@
 | [Reinschrift](https://github.com/danst0/ReinschriftTodo) | Markdown checkbox 是主数据，可由普通编辑器读取和修改 | 采用 Markdown 作为唯一持久化文档；追加稳定 ID 和时间元数据以避免丢失历史 |
 | [TodoPop](https://github.com/shakee93/todopop) | 外部文件变更通过内容差异去重，避免应用自己的写入触发无效刷新；对瞬时空文件有数据丢失保护；项目记录了 Swift 6 下文件监听闭包的隔离陷阱 | 采用内容级快照比较和瞬时空文件保护；每次应用内变更前先吸收外部修改。本项目只有单个本地文件，因此用低频轮询代替更复杂的目录 DispatchSource |
 | [Docket](https://github.com/santoru/docket) / [Quiet Tasks](https://github.com/rakeshutekar/quiet-tasks) / [EasyTODO](https://github.com/ArabelaTso/easytodo-on-macos) | 完成和删除提供 undo，Done 视图允许恢复，事项支持原位编辑 | 同时提供完成撤销、删除撤销和折叠的“已完成”恢复区；进行中与已完成事项均可原位编辑和删除 |
-| [tado](https://github.com/Entrepenulian/tado) / [TodoPop](https://github.com/shakee93/todopop) | 用系统菜单栏场景管理常驻应用，应用不占 Dock | 采用原生 `MenuBarExtra`；菜单负责显示/隐藏浮窗、显示未完成数量、打开记录和退出，不复制一套待办界面 |
+| [tado](https://github.com/Entrepenulian/tado) / [TodoPop](https://github.com/shakee93/todopop) | 用系统菜单栏场景管理常驻应用，应用不占 Dock | 采用 AppKit 原生 `NSStatusItem` 并由 AppDelegate 长期持有，避免后台重启时入口注册不稳定；菜单负责显示/隐藏浮窗、显示未完成数量、打开记录和退出 |
 | [EasyTODO](https://github.com/ArabelaTso/easytodo-on-macos) | 用细色条和少量颜色表达优先级，桌面组件保持安静 | P0/关键词高亮使用暖红细条、低透明底色和小标签；P1–P3 只显示彩色胶囊，避免整行强色块 |
 | [Planify](https://github.com/alainm23/planify) | 用原生拖放手势调整任务和分区顺序 | 只在进行中事项左侧提供独立拖拽手柄，不让整行可拖，避免与完成、选中文字和菜单交互冲突；以 Markdown 行顺序持久化 |
 | [Taskwarrior](https://taskwarrior.org/docs/terminology/) / [Vikunja](https://vikunja.io/help/views/) | Taskwarrior 将 waiting 建模为与 pending/completed 并列的状态，Vikunja 允许独立工作流分区折叠 | 将“待重启”建模为独立状态和 Markdown 分区，默认折叠以保持主列表聚焦，不用标签或完成状态模拟 |

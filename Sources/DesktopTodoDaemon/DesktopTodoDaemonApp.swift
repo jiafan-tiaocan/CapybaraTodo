@@ -12,24 +12,6 @@ struct DesktopTodoDaemonApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        MenuBarExtra {
-            Button(appDelegate.panelVisible ? "隐藏待办 · \(appDelegate.activeCount) 项" : "显示待办 · \(appDelegate.activeCount) 项") {
-                appDelegate.togglePanelVisibility()
-            }
-            Button("打开记录文档") {
-                appDelegate.openTodoDocument()
-            }
-            Divider()
-            Button("退出桌面待办") {
-                NSApp.terminate(nil)
-            }
-            .keyboardShortcut("q")
-        } label: {
-            Image(nsImage: CapybaraStatusIcon.image)
-                .accessibilityLabel("卡皮巴拉待办")
-        }
-        .menuBarExtraStyle(.menu)
-
         Settings { EmptyView() }
     }
 }
@@ -42,15 +24,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var panel: FloatingPanel?
     private var model: TodoModel?
     private var modelChangeSubscription: AnyCancellable?
+    private var statusItem: NSStatusItem?
+    private var visibilityMenuItem: NSMenuItem?
     private var pendingRestartSectionExpanded = false
     private var completedSectionExpanded = false
     private var measuredListContentHeight: CGFloat?
     private let panelWidth = TodoPanelLayout.width
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        configureStatusItem()
         let model = TodoModel()
         self.model = model
         activeCount = model.activeItems.count
+        refreshStatusMenu()
         let hostingView = NSHostingView(rootView: TodoView(
             model: model,
             onHide: { [weak self] in
@@ -110,8 +96,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             DispatchQueue.main.async {
                 self?.resizePanelToFitContent()
                 self?.activeCount = self?.model?.activeItems.count ?? 0
+                self?.refreshStatusMenu()
             }
         }
+    }
+
+    private func configureStatusItem() {
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        if let button = item.button {
+            button.image = CapybaraStatusIcon.image
+            button.imagePosition = .imageOnly
+            button.toolTip = "卡皮巴拉待办"
+            button.setAccessibilityLabel("卡皮巴拉待办")
+        }
+
+        let menu = NSMenu()
+        let visibilityItem = NSMenuItem(
+            title: "",
+            action: #selector(togglePanelVisibility),
+            keyEquivalent: ""
+        )
+        visibilityItem.target = self
+        menu.addItem(visibilityItem)
+
+        let openDocumentItem = NSMenuItem(
+            title: "打开记录文档",
+            action: #selector(openTodoDocument),
+            keyEquivalent: ""
+        )
+        openDocumentItem.target = self
+        menu.addItem(openDocumentItem)
+        menu.addItem(.separator())
+
+        let quitItem = NSMenuItem(
+            title: "退出桌面待办",
+            action: #selector(terminateApp),
+            keyEquivalent: "q"
+        )
+        quitItem.target = self
+        menu.addItem(quitItem)
+
+        item.menu = menu
+        statusItem = item
+        visibilityMenuItem = visibilityItem
+        refreshStatusMenu()
+    }
+
+    private func refreshStatusMenu() {
+        let action = panelVisible ? "隐藏待办" : "显示待办"
+        visibilityMenuItem?.title = "\(action) · \(activeCount) 项"
     }
 
     private func position(_ panel: NSPanel) {
@@ -132,6 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             panel.orderFrontRegardless()
             NSApp.activate(ignoringOtherApps: true)
             panelVisible = true
+            refreshStatusMenu()
         }
     }
 
@@ -142,6 +176,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private func hidePanel() {
         panel?.orderOut(nil)
         panelVisible = false
+        refreshStatusMenu()
+    }
+
+    @objc private func terminateApp() {
+        NSApp.terminate(nil)
     }
 
     private func preferredPanelHeight(for model: TodoModel) -> CGFloat {
