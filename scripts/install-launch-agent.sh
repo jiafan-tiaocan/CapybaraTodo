@@ -8,6 +8,18 @@ APP_PATH="$INSTALL_DIR/DesktopTodoDaemon.app"
 PLIST_PATH="$HOME/Library/LaunchAgents/com.jiafan.desktop-todo-daemon.plist"
 EXPECTED_BUNDLE_ID="com.jiafan.desktop-todo-daemon"
 
+if [[ "$(uname -s)" != "Darwin" ]]; then
+  echo "安装中止：桌面待办仅支持 macOS。" >&2
+  exit 1
+fi
+
+if ! xcode-select -p >/dev/null 2>&1 || ! command -v swift >/dev/null 2>&1; then
+  echo "还缺少 Apple 命令行开发工具，正在打开安装窗口。" >&2
+  echo "安装完成后，请重新双击“安装桌面待办.command”。" >&2
+  xcode-select --install 2>/dev/null || true
+  exit 2
+fi
+
 "$PROJECT_DIR/scripts/build-app.sh"
 mkdir -p "$INSTALL_DIR" "$HOME/Library/LaunchAgents"
 
@@ -46,3 +58,5 @@ launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH"
 
 echo "已安装并启动：$APP_PATH"
 echo "LaunchAgent：$PLIST_PATH"
+echo "待办文档默认保存在：$HOME/Documents/桌面待办/桌面待办.md"
+echo "以后可直接双击本安装入口完成更新。"

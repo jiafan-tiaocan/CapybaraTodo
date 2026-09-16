@@ -17,15 +17,17 @@ macOS 原生桌面待办小窗：半透明、无边框、跨桌面置顶。点�
 - 展开“已完成”时窗口会随内容增高，收起后恢复紧凑高度
 - 已完成事项显示本地时区下的创建时间和完成时间，精确到小时
 - 进行中、待重启和已完成事项都可原位编辑或删除；删除后可在 4 秒内撤销
-- 每条事项可记录一层“过程节点”，支持单独完成、恢复、编辑和删除；界面用小字号与细引导线展示主从层级
+- 每条进行中或待重启事项右侧都有“过程”按钮，可直接输入一层过程节点；节点支持单独完成、恢复、编辑和删除
 - 自动维护 Markdown 的“进行中”、“待重启”和“已完成”三个分区
-- 外部编辑 Markdown 后约 0.7 秒内自动刷新
+- 外部编辑 Markdown 后约 1.5 秒内自动刷新
 - 每条事项可手动设置 P0–P3；P0 或标题含“高优、重要、紧急、p0”时自动重点高亮
 - 时间使用本地时区偏移记录，例如北京时间 `2026-09-16T09:00:00+08:00`
 - 可从菜单打开或更换记录文档
 - 使用 LaunchAgent 在登录时通过 macOS Launch Services 启动应用；从菜单退出后停到下次登录
 
-默认文档：`~/Desktop/贾凡的知识库/待办事项/桌面待办.md`
+默认文档：`~/Documents/桌面待办/桌面待办.md`
+
+应用只改写文档中 `desktop-todo:start` 与 `desktop-todo:end` 标记之间的内容。标记之外可以写团队备注或其他 Markdown，应用保存时会原样保留。老版本文档首次保存时会自动迁移为这种结构。
 
 过程节点使用标准 Markdown 缩进复选框，可直接在文件中编辑：
 
@@ -37,9 +39,17 @@ macOS 原生桌面待办小窗：半透明、无边框、跨桌面置顶。点�
 
 设计参考与取舍见 [`docs/open-source-references.md`](docs/open-source-references.md)。仓库约定要求在窗口行为、交互和数据可靠性等设计决策前主动核验优质开源实现。
 
-## 一键安装
+## 内部安装
 
-需要 macOS 14 或更高版本，并已安装 Xcode Command Line Tools。克隆仓库后只需执行：
+需要 macOS 14 或更高版本。推荐把整个源码目录发给同事，让对方双击：
+
+```text
+安装桌面待办.command
+```
+
+安装脚本会检查 Apple 命令行开发工具；如果尚未安装，会打开系统安装窗口，完成后再双击一次即可。这样每个人都在自己的 Mac 上编译，不需要传递会被 Gatekeeper 拦截的临时签名 `.app`。
+
+也可以在终端执行：
 
 ```bash
 ./install.sh
@@ -50,6 +60,7 @@ macOS 原生桌面待办小窗：半透明、无边框、跨桌面置顶。点�
 - 应用安装到 `~/Applications/DesktopTodoDaemon.app`，移动或删除源码仓库不会影响运行。
 - LaunchAgent 安装到 `~/Library/LaunchAgents/com.jiafan.desktop-todo-daemon.plist`。
 - 重复运行同一命令即可安全更新已安装版本。
+- 源码保留在原目录，可直接修改；修改后再次双击安装入口即可重新编译和更新。
 
 安装后可执行健康检查：
 
@@ -79,6 +90,14 @@ GitHub 仓库只保存应用源码，不上传个人待办数据。换机时：
 swift run
 ```
 
+主要代码入口：
+
+- `TodoView.swift`：待办、过程节点和编辑交互
+- `TodoModel.swift`：状态变化、撤销和文档刷新
+- `MarkdownTodoStore.swift`：Markdown 解析、无损保存和时间元数据
+- `DesktopTodoDaemonApp.swift`：浮窗、菜单栏和显示隐藏行为
+- `scripts/self-check/main.swift`：不依赖 UI 的数据回归校验
+
 构建 `.app`：
 
 ```bash
@@ -92,10 +111,16 @@ open build/DesktopTodoDaemon.app
 ./scripts/install-launch-agent.sh
 ```
 
-停止并取消自动启动：
+停止并取消自动启动，可双击 `卸载桌面待办.command`，也可以执行：
 
 ```bash
 ./scripts/uninstall-launch-agent.sh
 ```
 
 卸载脚本不会删除应用、仓库或待办 Markdown 文档。
+
+## 内部分享说明
+
+- 当前仓库适合通过 GitHub 私有仓库邀请成员，或直接发送完整源码压缩包。
+- 不要只发送 `build/DesktopTodoDaemon.app`：当前内部流程采用本机临时签名，下载到另一台 Mac 后可能被 Gatekeeper 阻止。
+- 项目采用 MIT License，同事可以保留来源后修改和再分发。

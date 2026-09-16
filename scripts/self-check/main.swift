@@ -164,3 +164,48 @@ guard manualPendingRestart.count == 1,
 }
 
 print("待重启分区校验通过")
+
+let mixedDocument = """
+# 桌面待办
+
+## 进行中
+
+- [ ] 旧待办
+
+## 已完成
+
+## 团队备注
+
+这段说明必须由应用保留。
+- [ ] 这不是桌面待办的数据
+"""
+try mixedDocument.write(to: url, atomically: true, encoding: .utf8)
+let mixedItems = store.load(content: mixedDocument)
+guard mixedItems.count == 1, mixedItems[0].title == "旧待办" else {
+    fatalError("自定义 Markdown 标题下的复选框被误识别为应用待办")
+}
+try store.save(mixedItems, to: url)
+let preservedDocument = try String(contentsOf: url, encoding: .utf8)
+let preservedItems = try store.load(from: url)
+guard preservedDocument.contains("<!-- desktop-todo:start -->"),
+      preservedDocument.contains("<!-- desktop-todo:end -->"),
+      preservedDocument.contains("## 团队备注"),
+      preservedDocument.contains("这段说明必须由应用保留。"),
+      preservedDocument.contains("- [ ] 这不是桌面待办的数据"),
+      preservedItems.count == 1,
+      preservedItems[0].title == "旧待办" else {
+    fatalError("应用写入时未正确隔离或保留用户自定义 Markdown 内容")
+}
+
+try store.save(preservedItems, to: url)
+let secondSave = try String(contentsOf: url, encoding: .utf8)
+guard secondSave.components(separatedBy: "<!-- desktop-todo:start -->").count == 2 else {
+    fatalError("重复保存生成了多个应用管理区")
+}
+
+guard MarkdownTodoStore.defaultDocumentURL.path.contains("/Documents/桌面待办/"),
+      !MarkdownTodoStore.defaultDocumentURL.path.contains("贾凡") else {
+    fatalError("默认文档路径不是可迁移的用户通用路径")
+}
+
+print("自定义 Markdown 内容保留与通用默认路径校验通过")

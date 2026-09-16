@@ -1,8 +1,15 @@
 import Foundation
 
 struct MarkdownTodoStore {
-    static let defaultDocumentURL = FileManager.default.homeDirectoryForCurrentUser
-        .appending(path: "Desktop/贾凡的知识库/待办事项/桌面待办.md")
+    static let defaultDocumentURL: URL = {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? home.appending(path: "Documents")
+        return documents.appending(path: "桌面待办/桌面待办.md")
+    }()
+
+    private let managedStartMarker = "<!-- desktop-todo:start -->"
+    private let managedEndMarker = "<!-- desktop-todo:end -->"
 
     private let dateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
@@ -19,10 +26,11 @@ struct MarkdownTodoStore {
 
     func load(content: String) -> [TodoItem] {
         var items: [TodoItem] = []
-        var section = TodoStatus.active
+        var section: TodoStatus? = .active
         var parentIndex: Int?
+        let source = managedContent(in: content) ?? content
 
-        for rawLine in content.components(separatedBy: .newlines) {
+        for rawLine in source.components(separatedBy: .newlines) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             if line == "## 进行中" {
                 section = .active
@@ -40,7 +48,7 @@ struct MarkdownTodoStore {
                 continue
             }
             if line.hasPrefix("## ") {
-                section = .active
+                section = nil
                 parentIndex = nil
                 continue
             }
@@ -51,7 +59,7 @@ struct MarkdownTodoStore {
                let parentIndex,
                let checkpoint = parseCheckpoint(line: line) {
                 items[parentIndex].checkpoints.append(checkpoint)
-            } else if let item = parse(line: line, section: section) {
+            } else if let section, let item = parse(line: line, section: section) {
                 items.append(item)
                 parentIndex = items.indices.last
             }
@@ -72,6 +80,7 @@ struct MarkdownTodoStore {
         }
 
         var lines = [
+            managedStartMarker,
             "# 桌面待办",
             "",
             "> 本文件由 DesktopTodoDaemon 维护，也可直接编辑。时间采用带本地时区偏移的 ISO 8601 格式。",
@@ -87,9 +96,12 @@ struct MarkdownTodoStore {
         lines += ["", "## 已完成", ""]
         append(completed, to: &lines, line: completedLine)
         if completed.isEmpty { lines.append("_暂无_" ) }
-        lines.append("")
+        lines += [managedEndMarker, ""]
 
-        try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        let managedDocument = lines.joined(separator: "\n")
+        let existing = try? String(contentsOf: url, encoding: .utf8)
+        let output = mergedDocument(managedDocument, preserving: existing)
+        try output.write(to: url, atomically: true, encoding: .utf8)
     }
 
     private func activeLine(_ item: TodoItem) -> String {
@@ -223,5 +235,63 @@ struct MarkdownTodoStore {
         title.replacingOccurrences(of: "\n", with: " ")
             .replacingOccurrences(of: "\r", with: " ")
             .replacingOccurrences(of: "<!--", with: "＜!--")
+    }
+
+    private func managedContent(in content: String) -> String? {
+        guard let start = content.range(of: managedStartMarker),
+              let end = content.range(of: managedEndMarker, range: start.upperBound..<content.endIndex),
+              start.upperBound <= end.lowerBound else {
+            return nil
+        }
+        return String(content[start.upperBound..<end.lowerBound])
+    }
+
+    private func mergedDocument(_ managedDocument: String, preserving existing: String?) -> String {
+        guard let existing, !existing.isEmpty else { return managedDocument }
+
+        if let start = existing.range(of: managedStartMarker),
+           let end = existing.range(of: managedEndMarker, range: start.upperBound..<existing.endIndex) {
+            var updated = existing
+            updated.replaceSubrange(start.lowerBound..<end.upperBound, with: managedDocument.trimmingCharacters(in: .newlines))
+            return updated.hasSuffix("\n") ? updated : updated + "\n"
+        }
+
+        let preserved = legacyUnmanagedContent(from: existing)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !preserved.isEmpty else { return managedDocument }
+        return managedDocument.trimmingCharacters(in: .newlines)
+            + "\n\n"
+            + preserved
+            + "\n"
+    }
+
+    private func legacyUnmanagedContent(from content: String) -> String {
+        var isInManagedSection = false
+        var preserved: [String] = []
+
+        for rawLine in content.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+
+            if line == "# 桌面待办"
+                || line.hasPrefix("> 本文件由 DesktopTodoDaemon 维护")
+                || line == "_暂无_" {
+                continue
+            }
+            if ["## 进行中", "## 待重启", "## 已完成"].contains(line) {
+                isInManagedSection = true
+                continue
+            }
+            if line.hasPrefix("## ") {
+                isInManagedSection = false
+                preserved.append(rawLine)
+                continue
+            }
+            if isInManagedSection, line.hasPrefix("- [") {
+                continue
+            }
+            preserved.append(rawLine)
+        }
+
+        return preserved.joined(separator: "\n")
     }
 }

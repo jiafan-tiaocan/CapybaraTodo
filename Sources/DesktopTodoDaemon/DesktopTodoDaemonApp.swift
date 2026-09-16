@@ -139,6 +139,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         )
         openDocumentItem.target = self
         menu.addItem(openDocumentItem)
+
+        let changeDocumentItem = NSMenuItem(
+            title: "更换记录文档…",
+            action: #selector(changeTodoDocument),
+            keyEquivalent: ""
+        )
+        changeDocumentItem.target = self
+        menu.addItem(changeDocumentItem)
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
@@ -190,6 +198,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     @objc func openTodoDocument() {
         model?.openDocument()
+    }
+
+    @objc func changeTodoDocument() {
+        model?.chooseDocument()
     }
 
     private func hidePanel() {

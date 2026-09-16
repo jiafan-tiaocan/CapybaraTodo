@@ -19,7 +19,7 @@ struct TodoView: View {
     @State private var editingCheckpointTitle = ""
     @FocusState private var focusedEditorID: UUID?
     @FocusState private var focusedCheckpointID: UUID?
-    private let documentPoller = Timer.publish(every: 0.7, on: .main, in: .common).autoconnect()
+    private let documentPoller = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -104,10 +104,14 @@ struct TodoView: View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 2) {
                 if model.activeItems.isEmpty {
-                    Text("没有待办事项")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 70)
+                    VStack(spacing: 5) {
+                        Text("今天还没有待办")
+                            .font(.callout.weight(.medium))
+                        Text("在下方输入，按回车添加第一条")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 70)
                 } else {
                     ForEach(model.activeItems) { item in
                         VStack(alignment: .leading, spacing: 1) {
@@ -155,6 +159,7 @@ struct TodoView: View {
                                 }
                                 if editingItemID != item.id {
                                     priorityMenu(for: item)
+                                    addCheckpointButton(for: item)
                                     itemActionsMenu(for: item)
                                 }
                             }
@@ -253,6 +258,7 @@ struct TodoView: View {
                                 editorControls(for: item)
                             } else {
                                 priorityMenu(for: item)
+                                addCheckpointButton(for: item)
                                 itemActionsMenu(for: item)
                             }
                         }
@@ -488,6 +494,11 @@ struct TodoView: View {
                             .font(.system(size: 12))
                             .textFieldStyle(.plain)
                             .focused($focusedCheckpointID, equals: item.id)
+                            .onAppear {
+                                DispatchQueue.main.async {
+                                    focusedCheckpointID = item.id
+                                }
+                            }
                             .onSubmit { commitCheckpointAddition(to: item) }
                             .onExitCommand(perform: cancelCheckpointAddition)
                         Button {
@@ -580,8 +591,10 @@ struct TodoView: View {
             Button("编辑", systemImage: "pencil") {
                 beginEditing(item)
             }
-            Button("添加过程节点", systemImage: "point.3.connected.trianglepath.dotted") {
-                beginCheckpointAddition(to: item)
+            if item.status != .completed {
+                Button("添加过程节点", systemImage: "point.3.connected.trianglepath.dotted") {
+                    beginCheckpointAddition(to: item)
+                }
             }
             if item.status == .active {
                 Button("移至待重启", systemImage: "arrow.clockwise") {
@@ -618,6 +631,22 @@ struct TodoView: View {
         .menuStyle(.borderlessButton)
         .fixedSize()
         .help("编辑、添加过程节点、切换状态或删除")
+    }
+
+    private func addCheckpointButton(for item: TodoItem) -> some View {
+        Button {
+            beginCheckpointAddition(to: item)
+        } label: {
+            Label("过程", systemImage: "plus.circle")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(addingCheckpointForItemID == item.id ? Color.accentColor : .secondary)
+                .padding(.horizontal, 5)
+                .frame(height: 24)
+                .background(.primary.opacity(0.045), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .help("记录这条待办的过程节点")
+        .accessibilityLabel("添加过程节点")
     }
 
     private func beginEditing(_ item: TodoItem) {

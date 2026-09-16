@@ -16,6 +16,7 @@ final class TodoModel: ObservableObject {
     private var lastCompletionOrigin: TodoStatus?
     private var completionUndoExpiryTask: Task<Void, Never>?
     private var deleteUndoExpiryTask: Task<Void, Never>?
+    private var lastDeletedIndex: Int?
 
     init() {
         if let savedPath = UserDefaults.standard.string(forKey: documentPathKey), !savedPath.isEmpty {
@@ -182,6 +183,7 @@ final class TodoModel: ObservableObject {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
         let deleted = items.remove(at: index)
         lastDeletedItem = deleted
+        lastDeletedIndex = index
         scheduleDeleteUndoExpiry(for: deleted.id)
         if lastCompletedItemID == deleted.id {
             completionUndoExpiryTask?.cancel()
@@ -195,9 +197,10 @@ final class TodoModel: ObservableObject {
         reloadIfChanged()
         guard let deleted = lastDeletedItem,
               !items.contains(where: { $0.id == deleted.id }) else { return }
-        items.append(deleted)
+        items.insert(deleted, at: min(lastDeletedIndex ?? items.endIndex, items.endIndex))
         deleteUndoExpiryTask?.cancel()
         lastDeletedItem = nil
+        lastDeletedIndex = nil
         persist()
     }
 
@@ -233,6 +236,7 @@ final class TodoModel: ObservableObject {
             if !canUndoLastDelete {
                 deleteUndoExpiryTask?.cancel()
                 lastDeletedItem = nil
+                lastDeletedIndex = nil
             }
             errorMessage = nil
         } catch {
@@ -298,6 +302,7 @@ final class TodoModel: ObservableObject {
             try? await Task.sleep(for: undoFeedbackDuration)
             guard !Task.isCancelled, lastDeletedItem?.id == itemID else { return }
             lastDeletedItem = nil
+            lastDeletedIndex = nil
         }
     }
 }

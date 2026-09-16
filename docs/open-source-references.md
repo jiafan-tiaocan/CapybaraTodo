@@ -14,6 +14,8 @@
 | [EasyTODO](https://github.com/ArabelaTso/easytodo-on-macos) | 用细色条和少量颜色表达优先级，桌面组件保持安静 | P0/关键词高亮使用暖红细条、低透明底色和小标签；P1–P3 只显示彩色胶囊，避免整行强色块 |
 | [Planify](https://github.com/alainm23/planify) | 用原生拖放手势调整任务和分区顺序 | 只在进行中事项左侧提供独立拖拽手柄，不让整行可拖，避免与完成、选中文字和菜单交互冲突；以 Markdown 行顺序持久化 |
 | [Taskwarrior](https://taskwarrior.org/docs/terminology/) / [Vikunja](https://vikunja.io/help/views/) | Taskwarrior 将 waiting 建模为与 pending/completed 并列的状态，Vikunja 允许独立工作流分区折叠 | 将“待重启”建模为独立状态和 Markdown 分区，默认折叠以保持主列表聚焦，不用标签或完成状态模拟 |
+| [tic](https://github.com/kasvith/tic) | 悬停任务后在该行下方出现新增子任务入口，点击后直接原位输入；空输入离开时自动退出 | 本项目不依赖悬停才能发现功能，改为在进行中与待重启事项右侧常驻紧凑“过程”按钮，点击后在事项下方原位输入并自动聚焦 |
+| [TodoPop](https://github.com/shakee93/todopop) | 用 SwiftPM、零依赖、源码构建和 Release 压缩包同时覆盖开发者与普通用户，并明确 Command Line Tools 是最低构建依赖 | 内部阶段保留 SwiftPM 源码构建，增加可双击安装入口和依赖检测；不直接分发临时签名 `.app`，公开分发再补 Developer ID 与公证 |
 
 ## 全屏空间行为
 
