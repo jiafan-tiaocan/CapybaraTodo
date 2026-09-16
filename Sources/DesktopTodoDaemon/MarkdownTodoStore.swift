@@ -19,20 +19,28 @@ struct MarkdownTodoStore {
 
     func load(content: String) -> [TodoItem] {
         var items: [TodoItem] = []
-        var inCompletedSection = false
+        var section = TodoStatus.active
 
         for rawLine in content.components(separatedBy: .newlines) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if line == "## 进行中" {
+                section = .active
+                continue
+            }
+            if line == "## 待重启" {
+                section = .pendingRestart
+                continue
+            }
             if line == "## 已完成" {
-                inCompletedSection = true
+                section = .completed
                 continue
             }
             if line.hasPrefix("## ") {
-                inCompletedSection = false
+                section = .active
                 continue
             }
             guard line.hasPrefix("- [") else { continue }
-            if let item = parse(line: line, sectionCompleted: inCompletedSection) {
+            if let item = parse(line: line, section: section) {
                 items.append(item)
             }
         }
@@ -45,8 +53,9 @@ struct MarkdownTodoStore {
             withIntermediateDirectories: true
         )
 
-        let active = items.filter { $0.completedAt == nil }
-        let completed = items.filter { $0.completedAt != nil }.sorted {
+        let active = items.filter { $0.status == .active }
+        let pendingRestart = items.filter { $0.status == .pendingRestart }
+        let completed = items.filter { $0.status == .completed }.sorted {
             ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast)
         }
 
@@ -60,6 +69,9 @@ struct MarkdownTodoStore {
         ]
         lines.append(contentsOf: active.map(activeLine))
         if active.isEmpty { lines.append("_暂无_" ) }
+        lines += ["", "## 待重启", ""]
+        lines.append(contentsOf: pendingRestart.map(activeLine))
+        if pendingRestart.isEmpty { lines.append("_暂无_" ) }
         lines += ["", "## 已完成", ""]
         lines.append(contentsOf: completed.map(completedLine))
         if completed.isEmpty { lines.append("_暂无_" ) }
@@ -88,8 +100,9 @@ struct MarkdownTodoStore {
         return "<!-- \(fields.joined(separator: " ")) -->"
     }
 
-    private func parse(line: String, sectionCompleted: Bool) -> TodoItem? {
-        let checked = line.hasPrefix("- [x]") || line.hasPrefix("- [X]") || sectionCompleted
+    private func parse(line: String, section: TodoStatus) -> TodoItem? {
+        let checked = line.hasPrefix("- [x]") || line.hasPrefix("- [X]") || section == .completed
+        let status: TodoStatus = checked ? .completed : section
         let markerEnd = line.index(line.startIndex, offsetBy: 5)
         var body = String(line[markerEnd...]).trimmingCharacters(in: .whitespaces)
 
@@ -127,7 +140,8 @@ struct MarkdownTodoStore {
             title: title,
             createdAt: createdAt,
             completedAt: completedAt,
-            priority: priority
+            priority: priority,
+            status: status
         )
     }
 

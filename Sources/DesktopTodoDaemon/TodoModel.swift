@@ -12,6 +12,7 @@ final class TodoModel: ObservableObject {
     private let store = MarkdownTodoStore()
     private let documentPathKey = "todoDocumentPath"
     private var lastKnownDocumentData: Data?
+    private var lastCompletionOrigin: TodoStatus?
 
     init() {
         if let savedPath = UserDefaults.standard.string(forKey: documentPathKey), !savedPath.isEmpty {
@@ -23,22 +24,30 @@ final class TodoModel: ObservableObject {
     }
 
     var activeItems: [TodoItem] {
-        items.filter { $0.completedAt == nil }
+        items.filter { $0.status == .active }
+    }
+
+    var pendingRestartItems: [TodoItem] {
+        items.filter { $0.status == .pendingRestart }
+    }
+
+    var pendingRestartCount: Int {
+        pendingRestartItems.count
     }
 
     var completedCount: Int {
-        items.lazy.filter { $0.completedAt != nil }.count
+        items.lazy.filter { $0.status == .completed }.count
     }
 
     var completedItems: [TodoItem] {
-        items.filter { $0.completedAt != nil }.sorted {
+        items.filter { $0.status == .completed }.sorted {
             ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast)
         }
     }
 
     var canUndoLastCompletion: Bool {
         guard let id = lastCompletedItemID else { return false }
-        return items.contains { $0.id == id && $0.completedAt != nil }
+        return items.contains { $0.id == id && $0.status == .completed }
     }
 
     var canUndoLastDelete: Bool {
@@ -57,6 +66,8 @@ final class TodoModel: ObservableObject {
     func complete(_ item: TodoItem) {
         reloadIfChanged()
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        lastCompletionOrigin = items[index].status
+        items[index].status = .completed
         items[index].completedAt = .now
         lastCompletedItemID = item.id
         persist()
@@ -65,17 +76,31 @@ final class TodoModel: ObservableObject {
     func restore(_ item: TodoItem) {
         reloadIfChanged()
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index].status = .active
         items[index].completedAt = nil
         if lastCompletedItemID == item.id {
             lastCompletedItemID = nil
+            lastCompletionOrigin = nil
         }
         persist()
     }
 
     func undoLastCompletion() {
         guard let id = lastCompletedItemID,
-              let item = items.first(where: { $0.id == id }) else { return }
-        restore(item)
+              let index = items.firstIndex(where: { $0.id == id }) else { return }
+        items[index].status = lastCompletionOrigin ?? .active
+        items[index].completedAt = nil
+        lastCompletedItemID = nil
+        lastCompletionOrigin = nil
+        persist()
+    }
+
+    func moveToPendingRestart(_ item: TodoItem) {
+        changeStatus(of: item, to: .pendingRestart)
+    }
+
+    func moveToActive(_ item: TodoItem) {
+        changeStatus(of: item, to: .active)
     }
 
     func setPriority(_ priority: TodoPriority, for item: TodoItem) {
@@ -95,7 +120,7 @@ final class TodoModel: ObservableObject {
 
         let movedItem = active.remove(at: sourceIndex)
         active.insert(movedItem, at: min(targetIndex, active.endIndex))
-        items = active + items.filter { $0.completedAt != nil }
+        items = active + items.filter { $0.status != .active }
         persist()
     }
 
@@ -115,6 +140,7 @@ final class TodoModel: ObservableObject {
         lastDeletedItem = deleted
         if lastCompletedItemID == deleted.id {
             lastCompletedItemID = nil
+            lastCompletionOrigin = nil
         }
         persist()
     }
@@ -154,6 +180,7 @@ final class TodoModel: ObservableObject {
             lastKnownDocumentData = data
             if !canUndoLastCompletion {
                 lastCompletedItemID = nil
+                lastCompletionOrigin = nil
             }
             if !canUndoLastDelete {
                 lastDeletedItem = nil
@@ -189,5 +216,17 @@ final class TodoModel: ObservableObject {
         } catch {
             errorMessage = "保存失败：\(error.localizedDescription)"
         }
+    }
+
+    private func changeStatus(of item: TodoItem, to status: TodoStatus) {
+        reloadIfChanged()
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index].status = status
+        items[index].completedAt = status == .completed ? (items[index].completedAt ?? .now) : nil
+        if lastCompletedItemID == item.id, status != .completed {
+            lastCompletedItemID = nil
+            lastCompletionOrigin = nil
+        }
+        persist()
     }
 }

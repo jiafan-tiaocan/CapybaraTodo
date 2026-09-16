@@ -14,13 +14,18 @@ let done = TodoItem(
     createdAt: Date(timeIntervalSince1970: 1_700_000_100),
     completedAt: Date(timeIntervalSince1970: 1_700_000_200)
 )
+let pendingRestart = TodoItem(
+    title: "重启后复核服务",
+    createdAt: Date(timeIntervalSince1970: 1_700_000_150),
+    status: .pendingRestart
+)
 let store = MarkdownTodoStore()
-try store.save([active, done], to: url)
+try store.save([active, pendingRestart, done], to: url)
 let savedDocument = try String(contentsOf: url, encoding: .utf8)
 let loaded = try store.load(from: url)
 
-guard loaded.count == 2 else {
-    fatalError("期望 2 项，实际为 \(loaded.count) 项")
+guard loaded.count == 3 else {
+    fatalError("期望 3 项，实际为 \(loaded.count) 项")
 }
 guard loaded.first(where: { $0.id == active.id })?.completedAt == nil else {
     fatalError("进行中事项状态未保留")
@@ -30,6 +35,10 @@ guard loaded.first(where: { $0.id == active.id })?.priority == .p0 else {
 }
 guard loaded.first(where: { $0.id == done.id })?.completedAt != nil else {
     fatalError("已完成事项状态未保留")
+}
+guard loaded.first(where: { $0.id == pendingRestart.id })?.status == .pendingRestart,
+      savedDocument.contains("## 待重启") else {
+    fatalError("待重启事项状态未保留")
 }
 let offsetSeconds = TimeZone.current.secondsFromGMT(for: active.createdAt)
 let sign = offsetSeconds >= 0 ? "+" : "-"
@@ -54,22 +63,28 @@ let externalContent = """
 - [ ] 外部新增一
 - [ ] 外部新增二
 
+## 待重启
+
+- [ ] 等待重启复核
+
 ## 已完成
 
 - [x] 可恢复事项
 """
 let externalItems = store.load(content: externalContent)
-guard externalItems.count == 3,
-      externalItems.filter({ $0.completedAt == nil }).count == 2,
-      externalItems.filter({ $0.completedAt != nil }).count == 1 else {
+guard externalItems.count == 4,
+      externalItems.filter({ $0.status == .active }).count == 2,
+      externalItems.filter({ $0.status == .pendingRestart }).count == 1,
+      externalItems.filter({ $0.status == .completed }).count == 1 else {
     fatalError("外部 Markdown 内容解析失败")
 }
 
 var restored = externalItems
-restored[2].completedAt = nil
+restored[3].completedAt = nil
+restored[3].status = .active
 try store.save(restored, to: url)
 let restoredItems = try store.load(from: url)
-guard restoredItems.allSatisfy({ $0.completedAt == nil }) else {
+guard restoredItems.filter({ $0.status == .completed }).isEmpty else {
     fatalError("已完成事项恢复后状态未保留")
 }
 
@@ -84,7 +99,7 @@ guard TodoItem(title: "P0 修复发布故障").needsHighPriorityHighlight,
 
 print("优先级持久化与自动高亮校验通过")
 
-var editedAndDeleted = loaded
+var editedAndDeleted = loaded.filter { $0.status != .pendingRestart }
 editedAndDeleted[0].title = "已修改的重要方案"
 editedAndDeleted.removeAll { $0.id == done.id }
 try store.save(editedAndDeleted, to: url)
@@ -112,3 +127,18 @@ guard reorderedResult.map(\.id) == [later.id, earlier.id] else {
 }
 
 print("拖拽顺序持久化校验通过")
+
+let manualPendingRestart = store.load(content: """
+# 桌面待办
+
+## 待重启
+
+- [ ] 手动移入待重启
+""")
+guard manualPendingRestart.count == 1,
+      manualPendingRestart[0].status == .pendingRestart,
+      manualPendingRestart[0].completedAt == nil else {
+    fatalError("手动编辑待重启分区解析失败")
+}
+
+print("待重启分区校验通过")

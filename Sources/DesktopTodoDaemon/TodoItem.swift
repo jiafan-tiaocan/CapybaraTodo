@@ -1,5 +1,11 @@
 import Foundation
 
+enum TodoStatus: String, Sendable {
+    case active
+    case pendingRestart
+    case completed
+}
+
 enum TodoPriority: String, CaseIterable, Sendable {
     case none
     case p0
@@ -24,23 +30,26 @@ struct TodoItem: Identifiable, Equatable, Sendable {
     var createdAt: Date
     var completedAt: Date?
     var priority: TodoPriority
+    var status: TodoStatus
 
     init(
         id: UUID = UUID(),
         title: String,
         createdAt: Date = .now,
         completedAt: Date? = nil,
-        priority: TodoPriority = .none
+        priority: TodoPriority = .none,
+        status: TodoStatus? = nil
     ) {
         self.id = id
         self.title = title
         self.createdAt = createdAt
         self.completedAt = completedAt
         self.priority = priority
+        self.status = status ?? (completedAt == nil ? .active : .completed)
     }
 
     var needsHighPriorityHighlight: Bool {
-        guard completedAt == nil else { return false }
+        guard status != .completed else { return false }
         if priority == .p0 { return true }
         let normalizedTitle = title.lowercased()
         return normalizedTitle.contains("p0")

@@ -3,9 +3,10 @@ import SwiftUI
 struct TodoView: View {
     @ObservedObject var model: TodoModel
     let onHide: () -> Void
-    let onCompletedExpansionChanged: (Bool) -> Void
+    let onSectionExpansionChanged: (Bool, Bool) -> Void
     @State private var newTodo = ""
     @State private var isHovering = false
+    @State private var showPendingRestart = false
     @State private var showCompleted = false
     @State private var editingItemID: UUID?
     @State private var editingTitle = ""
@@ -43,8 +44,11 @@ struct TodoView: View {
         .shadow(color: .black.opacity(0.18), radius: 22, y: 10)
         .onHover { isHovering = $0 }
         .onReceive(documentPoller) { _ in model.reloadIfChanged() }
+        .onChange(of: showPendingRestart) { _, isExpanded in
+            onSectionExpansionChanged(isExpanded, showCompleted)
+        }
         .onChange(of: showCompleted) { _, isExpanded in
-            onCompletedExpansionChanged(isExpanded)
+            onSectionExpansionChanged(showPendingRestart, isExpanded)
         }
     }
 
@@ -182,9 +186,11 @@ struct TodoView: View {
                                 dropTargetItemID = nil
                             }
                         }
+                        .id("active-\(item.id.uuidString)")
                     }
                 }
 
+                pendingRestartSection
                 completedSection
             }
         }
@@ -192,28 +198,68 @@ struct TodoView: View {
     }
 
     @ViewBuilder
+    private var pendingRestartSection: some View {
+        if model.pendingRestartCount > 0 {
+            Divider().opacity(0.18).padding(.vertical, 4)
+            sectionToggle(
+                title: "待重启 \(model.pendingRestartCount)",
+                isExpanded: showPendingRestart,
+                expandedHelp: "收起待重启",
+                collapsedHelp: "展开待重启"
+            ) {
+                showPendingRestart.toggle()
+            }
+
+            if showPendingRestart {
+                ForEach(model.pendingRestartItems) { item in
+                    HStack(alignment: .top, spacing: 8) {
+                        Button {
+                            withAnimation(.easeOut(duration: 0.18)) {
+                                model.moveToActive(item)
+                            }
+                        } label: {
+                            Image(systemName: "arrow.clockwise.circle")
+                                .font(.system(size: 15))
+                                .foregroundStyle(.orange)
+                                .padding(.top, 2)
+                        }
+                        .buttonStyle(.plain)
+                        .help("恢复到进行中")
+                        itemTitle(item, completed: false)
+                        Spacer(minLength: 0)
+                        if editingItemID == item.id {
+                            editorControls(for: item)
+                        } else {
+                            priorityMenu(for: item)
+                            itemActionsMenu(for: item)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 4)
+                    .background {
+                        if item.needsHighPriorityHighlight {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(highPriorityAccent.opacity(0.075))
+                        }
+                    }
+                    .id("pending-restart-\(item.id.uuidString)")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private var completedSection: some View {
         if model.completedCount > 0 {
             Divider().opacity(0.18).padding(.vertical, 4)
-            Button {
-                withAnimation(.easeOut(duration: 0.18)) {
-                    showCompleted.toggle()
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
-                        .rotationEffect(.degrees(showCompleted ? 90 : 0))
-                    Text("已完成 \(model.completedCount)")
-                        .font(.system(size: 13, weight: .medium))
-                    Spacer(minLength: 0)
-                }
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 26, alignment: .leading)
-                .contentShape(Rectangle())
+            sectionToggle(
+                title: "已完成 \(model.completedCount)",
+                isExpanded: showCompleted,
+                expandedHelp: "收起已完成",
+                collapsedHelp: "展开已完成"
+            ) {
+                showCompleted.toggle()
             }
-            .buttonStyle(.plain)
-            .help(showCompleted ? "收起已完成" : "展开已完成")
 
             if showCompleted {
                 ForEach(model.completedItems) { item in
@@ -249,9 +295,36 @@ struct TodoView: View {
                     }
                     .padding(.vertical, 4)
                     .padding(.horizontal, 4)
+                    .id("completed-\(item.id.uuidString)")
                 }
             }
         }
+    }
+
+    private func sectionToggle(
+        title: String,
+        isExpanded: Bool,
+        expandedHelp: String,
+        collapsedHelp: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            withAnimation(.easeOut(duration: 0.18), action)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, minHeight: 26, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(isExpanded ? expandedHelp : collapsedHelp)
     }
 
     private var completionUndoBar: some View {
@@ -354,7 +427,18 @@ struct TodoView: View {
             Button("编辑", systemImage: "pencil") {
                 beginEditing(item)
             }
-            if item.completedAt != nil {
+            if item.status == .active {
+                Button("移至待重启", systemImage: "arrow.clockwise") {
+                    model.moveToPendingRestart(item)
+                }
+            } else if item.status == .pendingRestart {
+                Button("恢复到进行中", systemImage: "arrow.uturn.backward") {
+                    model.moveToActive(item)
+                }
+                Button("标记为已完成", systemImage: "checkmark.circle") {
+                    model.complete(item)
+                }
+            } else {
                 Button("恢复到进行中", systemImage: "arrow.uturn.backward") {
                     model.restore(item)
                 }
@@ -374,7 +458,7 @@ struct TodoView: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .help("编辑或删除")
+        .help("编辑、切换状态或删除")
     }
 
     private func beginEditing(_ item: TodoItem) {

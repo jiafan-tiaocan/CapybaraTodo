@@ -41,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var panel: FloatingPanel?
     private var model: TodoModel?
     private var modelChangeSubscription: AnyCancellable?
+    private var pendingRestartSectionExpanded = false
     private var completedSectionExpanded = false
     private let panelWidth = TodoPanelLayout.width
 
@@ -53,8 +54,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             onHide: { [weak self] in
                 self?.hidePanel()
             },
-            onCompletedExpansionChanged: { [weak self] isExpanded in
-                self?.completedSectionExpanded = isExpanded
+            onSectionExpansionChanged: { [weak self] pendingRestartExpanded, completedExpanded in
+                self?.pendingRestartSectionExpanded = pendingRestartExpanded
+                self?.completedSectionExpanded = completedExpanded
                 self?.resizePanelToFitContent()
             }
         ))
@@ -138,6 +140,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         let visibleRows = min(max(model.activeItems.count, 1), 8)
         let rowHeight: CGFloat = 36
         let baseHeight: CGFloat = 132
+        let pendingRestartHeaderHeight: CGFloat = model.pendingRestartCount > 0 ? 34 : 0
+        let pendingRestartRows = pendingRestartSectionExpanded ? min(model.pendingRestartCount, 8) : 0
+        let pendingRestartRowsHeight = CGFloat(pendingRestartRows) * 36
         let completedHeaderHeight: CGFloat = model.completedCount > 0 ? 34 : 0
         let completedRows = completedSectionExpanded ? min(model.completedCount, 8) : 0
         let completedRowsHeight = CGFloat(completedRows) * 44
@@ -147,7 +152,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             520,
             max(
                 190,
-                baseHeight + CGFloat(visibleRows) * rowHeight + completedHeaderHeight + completedRowsHeight + undoHeight
+                baseHeight
+                    + CGFloat(visibleRows) * rowHeight
+                    + pendingRestartHeaderHeight
+                    + pendingRestartRowsHeight
+                    + completedHeaderHeight
+                    + completedRowsHeight
+                    + undoHeight
             )
         )
     }
