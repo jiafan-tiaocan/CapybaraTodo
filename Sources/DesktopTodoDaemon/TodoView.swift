@@ -3,6 +3,7 @@ import SwiftUI
 struct TodoView: View {
     @ObservedObject var model: TodoModel
     let onHide: () -> Void
+    let onCompletedExpansionChanged: (Bool) -> Void
     @State private var newTodo = ""
     @State private var isHovering = false
     @State private var showCompleted = false
@@ -40,6 +41,9 @@ struct TodoView: View {
         .shadow(color: .black.opacity(0.18), radius: 22, y: 10)
         .onHover { isHovering = $0 }
         .onReceive(documentPoller) { _ in model.reloadIfChanged() }
+        .onChange(of: showCompleted) { _, isExpanded in
+            onCompletedExpansionChanged(isExpanded)
+        }
     }
 
     private var header: some View {

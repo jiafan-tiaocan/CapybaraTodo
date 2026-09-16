@@ -37,15 +37,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var panel: FloatingPanel?
     private var model: TodoModel?
     private var modelChangeSubscription: AnyCancellable?
+    private var completedSectionExpanded = false
     private let panelWidth: CGFloat = 360
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let model = TodoModel()
         self.model = model
         activeCount = model.activeItems.count
-        let hostingView = NSHostingView(rootView: TodoView(model: model) { [weak self] in
-            self?.hidePanel()
-        })
+        let hostingView = NSHostingView(rootView: TodoView(
+            model: model,
+            onHide: { [weak self] in
+                self?.hidePanel()
+            },
+            onCompletedExpansionChanged: { [weak self] isExpanded in
+                self?.completedSectionExpanded = isExpanded
+                self?.resizePanelToFitContent()
+            }
+        ))
         let panelSize = NSSize(width: panelWidth, height: preferredPanelHeight(for: model))
         hostingView.setFrameSize(panelSize)
         hostingView.autoresizingMask = [.width, .height]
@@ -127,9 +135,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         let rowHeight: CGFloat = 40
         let baseHeight: CGFloat = 124
         let completedHeaderHeight: CGFloat = model.completedCount > 0 ? 34 : 0
+        let completedRows = completedSectionExpanded ? min(model.completedCount, 8) : 0
+        let completedRowsHeight = CGFloat(completedRows) * 36
         let hasFeedback = model.canUndoLastCompletion || model.canUndoLastDelete
         let undoHeight: CGFloat = hasFeedback ? 40 : 0
-        return min(520, max(190, baseHeight + CGFloat(visibleRows) * rowHeight + completedHeaderHeight + undoHeight))
+        return min(
+            520,
+            max(
+                190,
+                baseHeight + CGFloat(visibleRows) * rowHeight + completedHeaderHeight + completedRowsHeight + undoHeight
+            )
+        )
     }
 
     private func resizePanelToFitContent() {
