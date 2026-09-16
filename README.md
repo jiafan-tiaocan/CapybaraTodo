@@ -27,7 +27,37 @@ macOS 原生桌面待办小窗：半透明、无边框、跨桌面置顶。点�
 
 设计参考与取舍见 [`docs/open-source-references.md`](docs/open-source-references.md)。仓库约定要求在窗口行为、交互和数据可靠性等设计决策前主动核验优质开源实现。
 
-## 构建与运行
+## 一键安装
+
+需要 macOS 14 或更高版本，并已安装 Xcode Command Line Tools。克隆仓库后只需执行：
+
+```bash
+./install.sh
+```
+
+安装器会完成编译、本地签名、安装和登录自启：
+
+- 应用安装到 `~/Applications/DesktopTodoDaemon.app`，移动或删除源码仓库不会影响运行。
+- LaunchAgent 安装到 `~/Library/LaunchAgents/com.jiafan.desktop-todo-daemon.plist`。
+- 重复运行同一命令即可安全更新已安装版本。
+
+安装后可执行健康检查：
+
+```bash
+./scripts/doctor.sh
+```
+
+## 换机与数据迁移
+
+GitHub 仓库只保存应用源码，不上传个人待办数据。换机时：
+
+1. 从 GitHub 克隆仓库，运行 `./install.sh`。
+2. 将原 Mac 上的待办 Markdown 文档复制或同步到新 Mac。
+3. 从菜单栏卡皮巴拉图标选择“更换记录文档…”，指向该 Markdown 文档。
+
+事项 ID、状态、顺序、优先级、创建时间和完成时间都保存在 Markdown 中；窗口位置和“记录文档路径”是每台 Mac 的本地设置，不会进入 GitHub。
+
+## 开发与验证
 
 运行无头数据校验并编译：
 
@@ -46,7 +76,7 @@ swift run
 open build/DesktopTodoDaemon.app
 ```
 
-安装为登录后自动启动的用户级 daemon：
+也可直接调用底层安装脚本：
 
 ```bash
 ./scripts/install-launch-agent.sh
