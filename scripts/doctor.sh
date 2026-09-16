@@ -22,7 +22,14 @@ check "应用签名有效" /usr/bin/codesign --verify --deep --strict "$APP_PATH
 check "LaunchAgent 配置存在" test -f "$PLIST_PATH"
 check "LaunchAgent 指向稳定安装路径" /usr/bin/grep -Fq "$APP_PATH" "$PLIST_PATH"
 check "LaunchAgent 已加载" launchctl print "gui/$(id -u)/$LABEL"
-check "应用正在运行" pgrep -f "$APP_PATH/Contents/MacOS/DesktopTodoDaemon"
+
+for _ in {1..50}; do
+  if pgrep -f 'DesktopTodoDaemon.app/Contents/MacOS/DesktopTodoDaemon$' >/dev/null; then
+    break
+  fi
+  sleep 0.1
+done
+check "应用正在运行" pgrep -f 'DesktopTodoDaemon.app/Contents/MacOS/DesktopTodoDaemon$'
 
 if (( FAILED )); then
   echo "健康检查未通过，请重新运行 ./install.sh。" >&2
