@@ -13,7 +13,7 @@ rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp ".build/release/$APP_NAME" "$APP_DIR/Contents/MacOS/$APP_NAME"
 cp "$PROJECT_DIR/resources/Info.plist" "$APP_DIR/Contents/Info.plist"
+cp "$PROJECT_DIR/Sources/DesktopTodoDaemon/Resources/capybara-pixel-logo.png" "$APP_DIR/Contents/Resources/capybara-pixel-logo.png"
 
 codesign --force --deep --sign - "$APP_DIR"
 echo "$APP_DIR"
-

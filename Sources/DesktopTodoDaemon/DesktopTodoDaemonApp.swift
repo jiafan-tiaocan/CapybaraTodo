@@ -133,7 +133,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private func preferredPanelHeight(for model: TodoModel) -> CGFloat {
         let visibleRows = min(max(model.activeItems.count, 1), 8)
         let rowHeight: CGFloat = 40
-        let baseHeight: CGFloat = 124
+        let baseHeight: CGFloat = 132
         let completedHeaderHeight: CGFloat = model.completedCount > 0 ? 34 : 0
         let completedRows = completedSectionExpanded ? min(model.completedCount, 8) : 0
         let completedRowsHeight = CGFloat(completedRows) * 36

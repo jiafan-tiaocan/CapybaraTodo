@@ -10,7 +10,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "DesktopTodoDaemon",
-            path: "Sources/DesktopTodoDaemon"
+            path: "Sources/DesktopTodoDaemon",
+            resources: [.process("Resources")]
         )
     ]
 )

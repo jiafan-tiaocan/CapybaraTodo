@@ -4,70 +4,77 @@ enum CapybaraStatusIcon {
     static let image: NSImage = {
         let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
             let ink = NSColor.black
-
-            // 两只短耳：小而圆，避免缩小后和头顶轮廓粘成一块。
-            ink.setFill()
-            NSBezierPath(ovalIn: NSRect(x: 3.8, y: 12.1, width: 2.25, height: 2.25)).fill()
-            NSBezierPath(ovalIn: NSRect(x: 9.1, y: 12.4, width: 2.0, height: 2.0)).fill()
-
-            // 卡皮巴拉最有识别度的是长而钝的鼻口，轮廓向右平缓延伸。
-            let head = NSBezierPath()
-            head.move(to: NSPoint(x: 3.0, y: 12.1))
-            head.curve(
-                to: NSPoint(x: 10.9, y: 12.8),
-                controlPoint1: NSPoint(x: 4.8, y: 13.4),
-                controlPoint2: NSPoint(x: 8.7, y: 13.5)
-            )
-            head.curve(
-                to: NSPoint(x: 15.8, y: 10.2),
-                controlPoint1: NSPoint(x: 13.2, y: 12.6),
-                controlPoint2: NSPoint(x: 15.3, y: 11.6)
-            )
-            head.curve(
-                to: NSPoint(x: 14.2, y: 6.1),
-                controlPoint1: NSPoint(x: 16.5, y: 8.8),
-                controlPoint2: NSPoint(x: 15.7, y: 6.8)
-            )
-            head.curve(
-                to: NSPoint(x: 5.2, y: 4.2),
-                controlPoint1: NSPoint(x: 11.9, y: 4.8),
-                controlPoint2: NSPoint(x: 7.5, y: 3.8)
-            )
-            head.curve(
-                to: NSPoint(x: 2.1, y: 8.2),
-                controlPoint1: NSPoint(x: 3.1, y: 5.0),
-                controlPoint2: NSPoint(x: 1.5, y: 6.6)
-            )
-            head.curve(
-                to: NSPoint(x: 3.0, y: 12.1),
-                controlPoint1: NSPoint(x: 1.9, y: 9.8),
-                controlPoint2: NSPoint(x: 2.2, y: 11.2)
-            )
-            head.close()
-            head.lineWidth = 1.45
-            head.lineJoinStyle = .round
             ink.setStroke()
-            head.stroke()
+            ink.setFill()
 
-            // 一眼一鼻即可形成表情；保持留白，避免状态栏尺寸下变成黑块。
-            NSBezierPath(ovalIn: NSRect(x: 10.5, y: 9.4, width: 1.45, height: 1.45)).fill()
-            NSBezierPath(ovalIn: NSRect(x: 14.0, y: 8.4, width: 1.1, height: 1.1)).fill()
-
-            let mouth = NSBezierPath()
-            mouth.move(to: NSPoint(x: 13.3, y: 6.9))
-            mouth.curve(
-                to: NSPoint(x: 14.8, y: 7.0),
-                controlPoint1: NSPoint(x: 13.9, y: 6.6),
-                controlPoint2: NSPoint(x: 14.4, y: 6.7)
+            // 侧身全身轮廓：楔形长头、桶状身体、无尾和短腿共同建立物种识别。
+            let body = NSBezierPath()
+            body.move(to: NSPoint(x: 1.4, y: 10.2))
+            body.line(to: NSPoint(x: 2.2, y: 11.8))
+            body.curve(
+                to: NSPoint(x: 5.4, y: 12.9),
+                controlPoint1: NSPoint(x: 3.0, y: 12.7),
+                controlPoint2: NSPoint(x: 4.3, y: 13.1)
             )
-            mouth.lineWidth = 0.9
-            mouth.lineCapStyle = .round
-            mouth.stroke()
+            body.curve(
+                to: NSPoint(x: 8.0, y: 11.3),
+                controlPoint1: NSPoint(x: 6.2, y: 12.8),
+                controlPoint2: NSPoint(x: 7.1, y: 11.7)
+            )
+            body.line(to: NSPoint(x: 14.2, y: 11.3))
+            body.curve(
+                to: NSPoint(x: 16.3, y: 8.0),
+                controlPoint1: NSPoint(x: 15.6, y: 11.0),
+                controlPoint2: NSPoint(x: 16.3, y: 9.7)
+            )
+            body.curve(
+                to: NSPoint(x: 15.3, y: 4.2),
+                controlPoint1: NSPoint(x: 16.4, y: 6.4),
+                controlPoint2: NSPoint(x: 16.0, y: 5.1)
+            )
+            body.line(to: NSPoint(x: 15.3, y: 2.6))
+            body.line(to: NSPoint(x: 13.8, y: 2.6))
+            body.line(to: NSPoint(x: 13.5, y: 4.1))
+            body.line(to: NSPoint(x: 8.4, y: 4.1))
+            body.line(to: NSPoint(x: 8.0, y: 2.5))
+            body.line(to: NSPoint(x: 6.5, y: 2.5))
+            body.line(to: NSPoint(x: 6.4, y: 4.5))
+            body.curve(
+                to: NSPoint(x: 3.2, y: 5.3),
+                controlPoint1: NSPoint(x: 5.3, y: 4.7),
+                controlPoint2: NSPoint(x: 4.1, y: 4.9)
+            )
+            body.line(to: NSPoint(x: 1.4, y: 7.0))
+            body.close()
+            body.lineWidth = 1.25
+            body.lineJoinStyle = .round
+            body.lineCapStyle = .round
+            body.stroke()
+
+            // 小耳贴近头顶，不使用熊类的大圆耳。
+            let ear = NSBezierPath(ovalIn: NSRect(x: 5.0, y: 12.2, width: 1.7, height: 1.8))
+            ear.lineWidth = 1.0
+            ear.stroke()
+
+            // 一条向上拱的短弧，表达安静但有生命力的眯眼。
+            let eye = NSBezierPath()
+            eye.move(to: NSPoint(x: 3.1, y: 10.0))
+            eye.curve(
+                to: NSPoint(x: 4.6, y: 10.0),
+                controlPoint1: NSPoint(x: 3.5, y: 10.6),
+                controlPoint2: NSPoint(x: 4.2, y: 10.6)
+            )
+            eye.lineWidth = 1.05
+            eye.lineCapStyle = .round
+            eye.stroke()
+
+            // 钝鼻位于楔形头最前端；卡皮巴拉没有可见尾巴。
+            NSBezierPath(roundedRect: NSRect(x: 1.0, y: 8.0, width: 1.25, height: 1.1), xRadius: 0.5, yRadius: 0.5).fill()
 
             return true
         }
         image.isTemplate = true
-        image.accessibilityDescription = "卡皮巴拉待办"
+        image.accessibilityDescription = "眯眼卡皮巴拉待办"
         return image
     }()
 }
