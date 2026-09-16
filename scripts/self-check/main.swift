@@ -96,3 +96,19 @@ guard mutationResult.count == 1,
 }
 
 print("编辑与删除持久化校验通过")
+
+let earlier = TodoItem(
+    title: "较早创建但排在后面",
+    createdAt: Date(timeIntervalSince1970: 1_600_000_000)
+)
+let later = TodoItem(
+    title: "较晚创建但排在前面",
+    createdAt: Date(timeIntervalSince1970: 1_800_000_000)
+)
+try store.save([later, earlier], to: url)
+let reorderedResult = try store.load(from: url)
+guard reorderedResult.map(\.id) == [later.id, earlier.id] else {
+    fatalError("进行中事项的相对顺序未持久化")
+}
+
+print("拖拽顺序持久化校验通过")

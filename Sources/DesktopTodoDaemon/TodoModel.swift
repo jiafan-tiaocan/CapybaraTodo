@@ -85,6 +85,20 @@ final class TodoModel: ObservableObject {
         persist()
     }
 
+    func reorderActiveItem(_ draggedID: UUID, relativeTo targetID: UUID) {
+        guard draggedID != targetID else { return }
+        reloadIfChanged()
+
+        var active = activeItems
+        guard let sourceIndex = active.firstIndex(where: { $0.id == draggedID }),
+              let targetIndex = active.firstIndex(where: { $0.id == targetID }) else { return }
+
+        let movedItem = active.remove(at: sourceIndex)
+        active.insert(movedItem, at: min(targetIndex, active.endIndex))
+        items = active + items.filter { $0.completedAt != nil }
+        persist()
+    }
+
     func rename(_ item: TodoItem, title: String) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }

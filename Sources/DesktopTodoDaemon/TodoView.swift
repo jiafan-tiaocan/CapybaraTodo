@@ -9,6 +9,8 @@ struct TodoView: View {
     @State private var showCompleted = false
     @State private var editingItemID: UUID?
     @State private var editingTitle = ""
+    @State private var hoveredDragHandleID: UUID?
+    @State private var dropTargetItemID: UUID?
     @FocusState private var focusedEditorID: UUID?
     private let documentPoller = Timer.publish(every: 0.7, on: .main, in: .common).autoconnect()
 
@@ -92,6 +94,23 @@ struct TodoView: View {
                 } else {
                     ForEach(model.activeItems) { item in
                         HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(hoveredDragHandleID == item.id ? .secondary : .tertiary)
+                                .frame(width: 18, height: 24)
+                                .contentShape(Rectangle())
+                                .onHover { isHovering in
+                                    hoveredDragHandleID = isHovering ? item.id : nil
+                                }
+                                .draggable(item.id.uuidString) {
+                                    Text(item.title)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .lineLimit(1)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                                }
+                                .help("拖拽调整顺序")
                             Button {
                                 withAnimation(.easeOut(duration: 0.18)) {
                                     model.complete(item)
@@ -133,6 +152,31 @@ struct TodoView: View {
                                             .frame(width: 3.5)
                                             .padding(.vertical, 4)
                                     }
+                            }
+                        }
+                        .overlay {
+                            if dropTargetItemID == item.id {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(Color.accentColor.opacity(0.5), lineWidth: 1)
+                            }
+                        }
+                        .dropDestination(for: String.self) { identifiers, _ in
+                            guard let rawID = identifiers.first,
+                                  let draggedID = UUID(uuidString: rawID),
+                                  draggedID != item.id else {
+                                dropTargetItemID = nil
+                                return false
+                            }
+                            withAnimation(.easeOut(duration: 0.16)) {
+                                model.reorderActiveItem(draggedID, relativeTo: item.id)
+                            }
+                            dropTargetItemID = nil
+                            return true
+                        } isTargeted: { isTargeted in
+                            if isTargeted {
+                                dropTargetItemID = item.id
+                            } else if dropTargetItemID == item.id {
+                                dropTargetItemID = nil
                             }
                         }
                     }

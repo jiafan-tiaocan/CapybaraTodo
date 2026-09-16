@@ -74,7 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         panel.hasShadow = false
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenNone]
-        panel.isMovableByWindowBackground = true
+        panel.isMovableByWindowBackground = false
         panel.hidesOnDeactivate = false
         panel.animationBehavior = .utilityWindow
         panel.setFrameAutosaveName("DesktopTodoDaemonPanel")

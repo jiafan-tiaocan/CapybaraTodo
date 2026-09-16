@@ -45,7 +45,7 @@ struct MarkdownTodoStore {
             withIntermediateDirectories: true
         )
 
-        let active = items.filter { $0.completedAt == nil }.sorted { $0.createdAt < $1.createdAt }
+        let active = items.filter { $0.completedAt == nil }
         let completed = items.filter { $0.completedAt != nil }.sorted {
             ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast)
         }
