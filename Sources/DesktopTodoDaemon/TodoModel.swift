@@ -11,8 +11,11 @@ final class TodoModel: ObservableObject {
 
     private let store = MarkdownTodoStore()
     private let documentPathKey = "todoDocumentPath"
+    private let undoFeedbackDuration: Duration = .seconds(4)
     private var lastKnownDocumentData: Data?
     private var lastCompletionOrigin: TodoStatus?
+    private var completionUndoExpiryTask: Task<Void, Never>?
+    private var deleteUndoExpiryTask: Task<Void, Never>?
 
     init() {
         if let savedPath = UserDefaults.standard.string(forKey: documentPathKey), !savedPath.isEmpty {
@@ -70,6 +73,7 @@ final class TodoModel: ObservableObject {
         items[index].status = .completed
         items[index].completedAt = .now
         lastCompletedItemID = item.id
+        scheduleCompletionUndoExpiry(for: item.id)
         persist()
     }
 
@@ -79,6 +83,7 @@ final class TodoModel: ObservableObject {
         items[index].status = .active
         items[index].completedAt = nil
         if lastCompletedItemID == item.id {
+            completionUndoExpiryTask?.cancel()
             lastCompletedItemID = nil
             lastCompletionOrigin = nil
         }
@@ -90,6 +95,7 @@ final class TodoModel: ObservableObject {
               let index = items.firstIndex(where: { $0.id == id }) else { return }
         items[index].status = lastCompletionOrigin ?? .active
         items[index].completedAt = nil
+        completionUndoExpiryTask?.cancel()
         lastCompletedItemID = nil
         lastCompletionOrigin = nil
         persist()
@@ -176,7 +182,9 @@ final class TodoModel: ObservableObject {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
         let deleted = items.remove(at: index)
         lastDeletedItem = deleted
+        scheduleDeleteUndoExpiry(for: deleted.id)
         if lastCompletedItemID == deleted.id {
+            completionUndoExpiryTask?.cancel()
             lastCompletedItemID = nil
             lastCompletionOrigin = nil
         }
@@ -188,6 +196,7 @@ final class TodoModel: ObservableObject {
         guard let deleted = lastDeletedItem,
               !items.contains(where: { $0.id == deleted.id }) else { return }
         items.append(deleted)
+        deleteUndoExpiryTask?.cancel()
         lastDeletedItem = nil
         persist()
     }
@@ -217,10 +226,12 @@ final class TodoModel: ObservableObject {
             items = store.load(content: content)
             lastKnownDocumentData = data
             if !canUndoLastCompletion {
+                completionUndoExpiryTask?.cancel()
                 lastCompletedItemID = nil
                 lastCompletionOrigin = nil
             }
             if !canUndoLastDelete {
+                deleteUndoExpiryTask?.cancel()
                 lastDeletedItem = nil
             }
             errorMessage = nil
@@ -262,9 +273,31 @@ final class TodoModel: ObservableObject {
         items[index].status = status
         items[index].completedAt = status == .completed ? (items[index].completedAt ?? .now) : nil
         if lastCompletedItemID == item.id, status != .completed {
+            completionUndoExpiryTask?.cancel()
             lastCompletedItemID = nil
             lastCompletionOrigin = nil
         }
         persist()
+    }
+
+    private func scheduleCompletionUndoExpiry(for itemID: UUID) {
+        completionUndoExpiryTask?.cancel()
+        completionUndoExpiryTask = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(for: undoFeedbackDuration)
+            guard !Task.isCancelled, lastCompletedItemID == itemID else { return }
+            lastCompletedItemID = nil
+            lastCompletionOrigin = nil
+        }
+    }
+
+    private func scheduleDeleteUndoExpiry(for itemID: UUID) {
+        deleteUndoExpiryTask?.cancel()
+        deleteUndoExpiryTask = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(for: undoFeedbackDuration)
+            guard !Task.isCancelled, lastDeletedItem?.id == itemID else { return }
+            lastDeletedItem = nil
+        }
     }
 }

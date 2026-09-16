@@ -48,6 +48,8 @@ struct TodoView: View {
                 .strokeBorder(.white.opacity(isHovering ? 0.28 : 0.14), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.18), radius: 22, y: 10)
+        .animation(.easeOut(duration: 0.18), value: model.canUndoLastDelete)
+        .animation(.easeOut(duration: 0.18), value: model.canUndoLastCompletion)
         .onHover { isHovering = $0 }
         .onReceive(documentPoller) { _ in model.reloadIfChanged() }
         .onPreferenceChange(TodoListContentHeightKey.self) { height in
