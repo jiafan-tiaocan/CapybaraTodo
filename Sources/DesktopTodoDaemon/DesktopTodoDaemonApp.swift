@@ -20,7 +20,8 @@ struct DesktopTodoDaemonApp: App {
             }
             .keyboardShortcut("q")
         } label: {
-            Label("桌面待办", systemImage: "checklist")
+            Image(nsImage: CapybaraStatusIcon.image)
+                .accessibilityLabel("卡皮巴拉待办")
         }
         .menuBarExtraStyle(.menu)
 
