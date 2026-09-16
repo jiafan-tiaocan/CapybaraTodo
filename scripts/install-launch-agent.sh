@@ -29,9 +29,10 @@ trap 'rm -rf "$STAGING_DIR"' EXIT
   "$PROJECT_DIR/resources/com.jiafan.desktop-todo-daemon.plist.template" > "$PLIST_PATH"
 
 launchctl bootout "gui/$(id -u)/com.jiafan.desktop-todo-daemon" 2>/dev/null || true
-pkill -x DesktopTodoDaemon 2>/dev/null || true
+pkill -f 'DesktopTodoDaemon.app/Contents/MacOS/DesktopTodoDaemon$' 2>/dev/null || true
 for _ in {1..50}; do
-  if ! launchctl print "gui/$(id -u)/com.jiafan.desktop-todo-daemon" >/dev/null 2>&1; then
+  if ! launchctl print "gui/$(id -u)/com.jiafan.desktop-todo-daemon" >/dev/null 2>&1 \
+      && ! pgrep -f 'DesktopTodoDaemon.app/Contents/MacOS/DesktopTodoDaemon$' >/dev/null; then
     break
   fi
   sleep 0.1
