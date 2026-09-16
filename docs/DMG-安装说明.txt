@@ -7,4 +7,4 @@
 当前内部测试包使用本地临时签名。如果 macOS 提示无法验证开发者，请不要关闭系统安全保护；改用源码安装，或联系维护者获取 Developer ID 签名并经 Apple 公证的版本。
 
 源码与问题反馈：
-https://github.com/jiafan-tiaocan/desktop-todo-daemon
+https://github.com/jiafan-tiaocan/CapybaraTodo
