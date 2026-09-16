@@ -70,7 +70,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         panel.backgroundColor = .clear
         panel.hasShadow = false
         panel.level = .floating
-        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenNone]
+        // Keep the panel on its normal desktop Space. `canJoinAllSpaces` also
+        // includes other apps' full-screen Spaces; `fullScreenNone` only stops
+        // this panel itself from entering full screen.
+        panel.collectionBehavior = [.stationary, .fullScreenNone, .fullScreenDisallowsTiling]
         panel.isMovableByWindowBackground = false
         panel.hidesOnDeactivate = false
         panel.animationBehavior = .utilityWindow

@@ -89,6 +89,8 @@ struct TodoView: View {
                 Button("更换记录文档…", action: model.chooseDocument)
                 Button("重新载入", action: model.reload)
                 Divider()
+                Button("版本信息…", systemImage: "info.circle", action: model.showVersionInfo)
+                Divider()
                 Button("退出", role: .destructive) { NSApplication.shared.terminate(nil) }
             } label: {
                 Image(systemName: "ellipsis.circle")

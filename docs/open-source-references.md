@@ -19,6 +19,6 @@
 
 ## 全屏空间行为
 
-AppKit 的 `fullScreenAuxiliary` 明确表示窗口可与其他应用的全屏窗口显示在同一空间；多个悬浮层项目也用它实现“覆盖全屏”。本项目的目标相反，因此只保留 `canJoinAllSpaces` 和 `stationary` 以覆盖普通桌面空间，并使用 `fullScreenNone` 明确不参与全屏。菜单栏入口仍可用于手动显示或隐藏待办。
+[Apple 的 `NSWindow.CollectionBehavior` 文档](https://developer.apple.com/documentation/appkit/nswindow/collectionbehavior-swift.struct)明确区分了两件事：`canJoinAllSpaces` 会让窗口出现在所有 Space；`fullScreenNone` 只表示窗口自身不支持全屏。多个悬浮层项目会组合 `canJoinAllSpaces` 与 `fullScreenAuxiliary` 来主动覆盖别的应用全屏，本项目的目标相反，因此不使用 `canJoinAllSpaces`，只保留 `stationary`、`fullScreenNone` 和 `fullScreenDisallowsTiling`。这样待办停留在所在的普通桌面 Space，切换到浏览器等应用的全屏 Space 时不会覆盖其内容；菜单栏入口仍然常驻。
 
 后续重点核验：外部编辑与应用内操作同时发生时的冲突提示、辅助功能与键盘操作。

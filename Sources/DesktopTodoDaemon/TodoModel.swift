@@ -269,6 +269,13 @@ final class TodoModel: ObservableObject {
         NSWorkspace.shared.open(documentURL)
     }
 
+    func showVersionInfo() {
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        NSApplication.shared.orderFrontStandardAboutPanel(options: [
+            .credits: NSAttributedString(string: "CapybaraTodo\n本地 Markdown 待办，数据只保存在这台 Mac。")
+        ])
+    }
+
     private func persist() {
         do {
             try store.save(items, to: documentURL)
