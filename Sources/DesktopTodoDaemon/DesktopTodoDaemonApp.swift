@@ -61,7 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         panel.backgroundColor = .clear
         panel.hasShadow = false
         panel.level = .floating
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenNone]
         panel.isMovableByWindowBackground = true
         panel.hidesOnDeactivate = false
         panel.animationBehavior = .utilityWindow

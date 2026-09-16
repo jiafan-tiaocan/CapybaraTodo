@@ -13,4 +13,8 @@
 | [tado](https://github.com/Entrepenulian/tado) / [TodoPop](https://github.com/shakee93/todopop) | 用系统菜单栏场景管理常驻应用，应用不占 Dock | 采用原生 `MenuBarExtra`；菜单负责显示/隐藏浮窗、显示未完成数量、打开记录和退出，不复制一套待办界面 |
 | [EasyTODO](https://github.com/ArabelaTso/easytodo-on-macos) | 用细色条和少量颜色表达优先级，桌面组件保持安静 | P0/关键词高亮使用暖红细条、低透明底色和小标签；P1–P3 只显示彩色胶囊，避免整行强色块 |
 
+## 全屏空间行为
+
+AppKit 的 `fullScreenAuxiliary` 明确表示窗口可与其他应用的全屏窗口显示在同一空间；多个悬浮层项目也用它实现“覆盖全屏”。本项目的目标相反，因此只保留 `canJoinAllSpaces` 和 `stationary` 以覆盖普通桌面空间，并使用 `fullScreenNone` 明确不参与全屏。菜单栏入口仍可用于手动显示或隐藏待办。
+
 后续重点核验：外部编辑与应用内操作同时发生时的冲突提示、辅助功能与键盘操作。
