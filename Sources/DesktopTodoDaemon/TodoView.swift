@@ -163,7 +163,16 @@ struct TodoView: View {
                         }
                         .buttonStyle(.plain)
                         .help("恢复到进行中")
-                        itemTitle(item, completed: true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            itemTitle(item, completed: true)
+                            if let completedAt = item.completedAt {
+                                Text("创建 \(hourText(item.createdAt)) · 完成 \(hourText(completedAt))")
+                                    .font(.system(size: 11))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
                         Spacer(minLength: 0)
                         if editingItemID == item.id {
                             editorControls(for: item)
@@ -222,6 +231,20 @@ struct TodoView: View {
 
     private var highPriorityAccent: Color {
         Color(red: 0.86, green: 0.24, blue: 0.18)
+    }
+
+    private func hourText(_ date: Date) -> String {
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour],
+            from: date
+        )
+        return String(
+            format: "%04d-%02d-%02d %02d时",
+            components.year ?? 0,
+            components.month ?? 0,
+            components.day ?? 0,
+            components.hour ?? 0
+        )
     }
 
     @ViewBuilder
