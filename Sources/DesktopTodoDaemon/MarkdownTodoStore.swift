@@ -20,28 +20,40 @@ struct MarkdownTodoStore {
     func load(content: String) -> [TodoItem] {
         var items: [TodoItem] = []
         var section = TodoStatus.active
+        var parentIndex: Int?
 
         for rawLine in content.components(separatedBy: .newlines) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             if line == "## 进行中" {
                 section = .active
+                parentIndex = nil
                 continue
             }
             if line == "## 待重启" {
                 section = .pendingRestart
+                parentIndex = nil
                 continue
             }
             if line == "## 已完成" {
                 section = .completed
+                parentIndex = nil
                 continue
             }
             if line.hasPrefix("## ") {
                 section = .active
+                parentIndex = nil
                 continue
             }
             guard line.hasPrefix("- [") else { continue }
-            if let item = parse(line: line, section: section) {
+
+            let indentation = rawLine.prefix { $0 == " " || $0 == "\t" }
+            if !indentation.isEmpty,
+               let parentIndex,
+               let checkpoint = parseCheckpoint(line: line) {
+                items[parentIndex].checkpoints.append(checkpoint)
+            } else if let item = parse(line: line, section: section) {
                 items.append(item)
+                parentIndex = items.indices.last
             }
         }
         return items
@@ -67,13 +79,13 @@ struct MarkdownTodoStore {
             "## 进行中",
             ""
         ]
-        lines.append(contentsOf: active.map(activeLine))
+        append(active, to: &lines, line: activeLine)
         if active.isEmpty { lines.append("_暂无_" ) }
         lines += ["", "## 待重启", ""]
-        lines.append(contentsOf: pendingRestart.map(activeLine))
+        append(pendingRestart, to: &lines, line: activeLine)
         if pendingRestart.isEmpty { lines.append("_暂无_" ) }
         lines += ["", "## 已完成", ""]
-        lines.append(contentsOf: completed.map(completedLine))
+        append(completed, to: &lines, line: completedLine)
         if completed.isEmpty { lines.append("_暂无_" ) }
         lines.append("")
 
@@ -87,6 +99,30 @@ struct MarkdownTodoStore {
     private func completedLine(_ item: TodoItem) -> String {
         let completed = dateFormatter.string(from: item.completedAt ?? .now)
         return "- [x] \(sanitize(item.title)) — 完成于 \(completed) \(metadata(for: item))"
+    }
+
+    private func append(
+        _ items: [TodoItem],
+        to lines: inout [String],
+        line: (TodoItem) -> String
+    ) {
+        for item in items {
+            lines.append(line(item))
+            lines.append(contentsOf: item.checkpoints.map(checkpointLine))
+        }
+    }
+
+    private func checkpointLine(_ checkpoint: TodoCheckpoint) -> String {
+        let mark = checkpoint.isCompleted ? "x" : " "
+        var body = "  - [\(mark)] \(sanitize(checkpoint.title))"
+        if let completedAt = checkpoint.completedAt {
+            body += " — 完成于 \(dateFormatter.string(from: completedAt))"
+        }
+        let fields = [
+            "id:\(checkpoint.id.uuidString)",
+            "created:\(dateFormatter.string(from: checkpoint.createdAt))"
+        ]
+        return "\(body) <!-- \(fields.joined(separator: " ")) -->"
     }
 
     private func metadata(for item: TodoItem) -> String {
@@ -142,6 +178,44 @@ struct MarkdownTodoStore {
             completedAt: completedAt,
             priority: priority,
             status: status
+        )
+    }
+
+    private func parseCheckpoint(line: String) -> TodoCheckpoint? {
+        let checked = line.hasPrefix("- [x]") || line.hasPrefix("- [X]")
+        let markerEnd = line.index(line.startIndex, offsetBy: 5)
+        var body = String(line[markerEnd...]).trimmingCharacters(in: .whitespaces)
+
+        var id = UUID()
+        var createdAt = Date()
+        if let metadataStart = body.range(of: "<!--"), let metadataEnd = body.range(of: "-->") {
+            let metadata = String(body[metadataStart.upperBound..<metadataEnd.lowerBound])
+            for token in metadata.split(separator: " ") {
+                if token.hasPrefix("id:"), let parsed = UUID(uuidString: String(token.dropFirst(3))) {
+                    id = parsed
+                } else if token.hasPrefix("created:"), let parsed = dateFormatter.date(from: String(token.dropFirst(8))) {
+                    createdAt = parsed
+                }
+            }
+            body.removeSubrange(metadataStart.lowerBound..<metadataEnd.upperBound)
+        }
+
+        var completedAt: Date?
+        if checked, let range = body.range(of: " — 完成于 ", options: .backwards) {
+            let timestamp = body[range.upperBound...].trimmingCharacters(in: .whitespaces)
+            completedAt = dateFormatter.date(from: timestamp) ?? createdAt
+            body = String(body[..<range.lowerBound])
+        } else if checked {
+            completedAt = createdAt
+        }
+
+        let title = body.trimmingCharacters(in: .whitespaces)
+        guard !title.isEmpty else { return nil }
+        return TodoCheckpoint(
+            id: id,
+            title: title,
+            createdAt: createdAt,
+            completedAt: completedAt
         )
     }
 

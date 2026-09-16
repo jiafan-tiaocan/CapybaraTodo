@@ -7,7 +7,18 @@ defer { try? FileManager.default.removeItem(at: url) }
 let active = TodoItem(
     title: "核对重要方案",
     createdAt: Date(timeIntervalSince1970: 1_700_000_000),
-    priority: .p0
+    priority: .p0,
+    checkpoints: [
+        TodoCheckpoint(
+            title: "完成技术评审",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_010),
+            completedAt: Date(timeIntervalSince1970: 1_700_000_020)
+        ),
+        TodoCheckpoint(
+            title: "核对发布清单",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_030)
+        )
+    ]
 )
 let done = TodoItem(
     title: "完成原型",
@@ -33,6 +44,12 @@ guard loaded.first(where: { $0.id == active.id })?.completedAt == nil else {
 guard loaded.first(where: { $0.id == active.id })?.priority == .p0 else {
     fatalError("优先级未保留")
 }
+guard loaded.first(where: { $0.id == active.id })?.checkpoints.count == 2,
+      loaded.first(where: { $0.id == active.id })?.checkpoints[0].isCompleted == true,
+      loaded.first(where: { $0.id == active.id })?.checkpoints[1].isCompleted == false,
+      savedDocument.contains("  - [x] 完成技术评审") else {
+    fatalError("过程节点往返持久化失败")
+}
 guard loaded.first(where: { $0.id == done.id })?.completedAt != nil else {
     fatalError("已完成事项状态未保留")
 }
@@ -54,6 +71,7 @@ guard savedDocument.contains(expectedOffset) else {
 }
 
 print("Markdown 往返校验通过")
+print("过程节点层级与状态校验通过")
 
 let externalContent = """
 # 桌面待办
@@ -61,6 +79,8 @@ let externalContent = """
 ## 进行中
 
 - [ ] 外部新增一
+  - [x] 需求对齐
+  - [ ] 技术评审
 - [ ] 外部新增二
 
 ## 待重启
@@ -75,7 +95,9 @@ let externalItems = store.load(content: externalContent)
 guard externalItems.count == 4,
       externalItems.filter({ $0.status == .active }).count == 2,
       externalItems.filter({ $0.status == .pendingRestart }).count == 1,
-      externalItems.filter({ $0.status == .completed }).count == 1 else {
+      externalItems.filter({ $0.status == .completed }).count == 1,
+      externalItems[0].checkpoints.map(\.title) == ["需求对齐", "技术评审"],
+      externalItems[0].checkpoints[0].isCompleted else {
     fatalError("外部 Markdown 内容解析失败")
 }
 

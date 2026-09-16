@@ -24,6 +24,29 @@ enum TodoPriority: String, CaseIterable, Sendable {
     }
 }
 
+struct TodoCheckpoint: Identifiable, Equatable, Sendable {
+    let id: UUID
+    var title: String
+    var createdAt: Date
+    var completedAt: Date?
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        createdAt: Date = .now,
+        completedAt: Date? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.createdAt = createdAt
+        self.completedAt = completedAt
+    }
+
+    var isCompleted: Bool {
+        completedAt != nil
+    }
+}
+
 struct TodoItem: Identifiable, Equatable, Sendable {
     let id: UUID
     var title: String
@@ -31,6 +54,7 @@ struct TodoItem: Identifiable, Equatable, Sendable {
     var completedAt: Date?
     var priority: TodoPriority
     var status: TodoStatus
+    var checkpoints: [TodoCheckpoint]
 
     init(
         id: UUID = UUID(),
@@ -38,7 +62,8 @@ struct TodoItem: Identifiable, Equatable, Sendable {
         createdAt: Date = .now,
         completedAt: Date? = nil,
         priority: TodoPriority = .none,
-        status: TodoStatus? = nil
+        status: TodoStatus? = nil,
+        checkpoints: [TodoCheckpoint] = []
     ) {
         self.id = id
         self.title = title
@@ -46,6 +71,7 @@ struct TodoItem: Identifiable, Equatable, Sendable {
         self.completedAt = completedAt
         self.priority = priority
         self.status = status ?? (completedAt == nil ? .active : .completed)
+        self.checkpoints = checkpoints
     }
 
     var needsHighPriorityHighlight: Bool {

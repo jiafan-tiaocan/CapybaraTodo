@@ -133,6 +133,44 @@ final class TodoModel: ObservableObject {
         persist()
     }
 
+    func addCheckpoint(to item: TodoItem, title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        reloadIfChanged()
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index].checkpoints.append(TodoCheckpoint(title: trimmed))
+        persist()
+    }
+
+    func toggleCheckpoint(_ checkpoint: TodoCheckpoint, in item: TodoItem) {
+        reloadIfChanged()
+        guard let itemIndex = items.firstIndex(where: { $0.id == item.id }),
+              let checkpointIndex = items[itemIndex].checkpoints.firstIndex(where: { $0.id == checkpoint.id }) else {
+            return
+        }
+        items[itemIndex].checkpoints[checkpointIndex].completedAt = checkpoint.isCompleted ? nil : .now
+        persist()
+    }
+
+    func renameCheckpoint(_ checkpoint: TodoCheckpoint, in item: TodoItem, title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        reloadIfChanged()
+        guard let itemIndex = items.firstIndex(where: { $0.id == item.id }),
+              let checkpointIndex = items[itemIndex].checkpoints.firstIndex(where: { $0.id == checkpoint.id }) else {
+            return
+        }
+        items[itemIndex].checkpoints[checkpointIndex].title = trimmed
+        persist()
+    }
+
+    func deleteCheckpoint(_ checkpoint: TodoCheckpoint, from item: TodoItem) {
+        reloadIfChanged()
+        guard let itemIndex = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[itemIndex].checkpoints.removeAll { $0.id == checkpoint.id }
+        persist()
+    }
+
     func delete(_ item: TodoItem) {
         reloadIfChanged()
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
