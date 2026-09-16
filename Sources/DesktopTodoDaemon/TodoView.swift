@@ -50,17 +50,23 @@ struct TodoView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(nsImage: PixelCapybaraLogo.image)
-                .interpolation(.none)
-                .resizable()
-                .frame(width: 42, height: 28)
-                .accessibilityHidden(true)
-            Text("待办")
-                .font(.system(size: 18, weight: .semibold, design: .rounded))
-            Text("\(model.activeItems.count)")
-                .font(.system(size: 13, design: .monospaced))
-                .foregroundStyle(.secondary)
-            Spacer()
+            HStack(spacing: 8) {
+                Image(nsImage: PixelCapybaraLogo.image)
+                    .interpolation(.none)
+                    .resizable()
+                    .frame(width: 42, height: 28)
+                    .accessibilityHidden(true)
+                Text("待办")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                Text("\(model.activeItems.count)")
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+            .background(WindowDragArea())
+
+            WindowDragArea()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
             Button(action: onHide) {
                 Image(systemName: "minus.circle")
                     .foregroundStyle(.secondary)
@@ -80,6 +86,7 @@ struct TodoView: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
         }
+        .frame(height: 30)
     }
 
     @ViewBuilder
