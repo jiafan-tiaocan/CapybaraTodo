@@ -127,7 +127,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         let rowHeight: CGFloat = 40
         let baseHeight: CGFloat = 124
         let completedHeaderHeight: CGFloat = model.completedCount > 0 ? 34 : 0
-        let undoHeight: CGFloat = model.canUndoLastCompletion ? 40 : 0
+        let hasFeedback = model.canUndoLastCompletion || model.canUndoLastDelete
+        let undoHeight: CGFloat = hasFeedback ? 40 : 0
         return min(520, max(190, baseHeight + CGFloat(visibleRows) * rowHeight + completedHeaderHeight + undoHeight))
     }
 

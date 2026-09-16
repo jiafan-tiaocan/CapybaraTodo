@@ -83,3 +83,16 @@ guard TodoItem(title: "P0 修复发布故障").needsHighPriorityHighlight,
 }
 
 print("优先级持久化与自动高亮校验通过")
+
+var editedAndDeleted = loaded
+editedAndDeleted[0].title = "已修改的重要方案"
+editedAndDeleted.removeAll { $0.id == done.id }
+try store.save(editedAndDeleted, to: url)
+let mutationResult = try store.load(from: url)
+guard mutationResult.count == 1,
+      mutationResult[0].title == "已修改的重要方案",
+      mutationResult[0].priority == .p0 else {
+    fatalError("编辑或删除后的 Markdown 持久化失败")
+}
+
+print("编辑与删除持久化校验通过")

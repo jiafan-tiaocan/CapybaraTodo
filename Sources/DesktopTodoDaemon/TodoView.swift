@@ -6,6 +6,9 @@ struct TodoView: View {
     @State private var newTodo = ""
     @State private var isHovering = false
     @State private var showCompleted = false
+    @State private var editingItemID: UUID?
+    @State private var editingTitle = ""
+    @FocusState private var focusedEditorID: UUID?
     private let documentPoller = Timer.publish(every: 0.7, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -13,8 +16,10 @@ struct TodoView: View {
             header
             Divider().opacity(0.25)
             todoList
-            if model.canUndoLastCompletion {
-                undoBar
+            if model.canUndoLastDelete {
+                deleteUndoBar
+            } else if model.canUndoLastCompletion {
+                completionUndoBar
             }
             addField
             if let error = model.errorMessage {
@@ -90,13 +95,11 @@ struct TodoView: View {
                             }
                             .buttonStyle(.plain)
                             .help("标记为已完成")
-                            Text(item.title)
-                                .font(.system(size: 15))
-                                .fontWeight(item.needsHighPriorityHighlight ? .medium : .regular)
-                                .multilineTextAlignment(.leading)
-                                .textSelection(.enabled)
+                            itemTitle(item, completed: false)
                             Spacer(minLength: 0)
-                            if item.needsHighPriorityHighlight && item.priority != .p0 {
+                            if editingItemID == item.id {
+                                editorControls(for: item)
+                            } else if item.needsHighPriorityHighlight && item.priority != .p0 {
                                 Text("重点")
                                     .font(.system(size: 10, weight: .semibold))
                                     .foregroundStyle(highPriorityAccent)
@@ -104,7 +107,10 @@ struct TodoView: View {
                                     .padding(.vertical, 2)
                                     .background(highPriorityAccent.opacity(0.1), in: Capsule())
                             }
-                            priorityMenu(for: item)
+                            if editingItemID != item.id {
+                                priorityMenu(for: item)
+                                itemActionsMenu(for: item)
+                            }
                         }
                         .padding(.vertical, 5)
                         .padding(.horizontal, 4)
@@ -148,11 +154,13 @@ struct TodoView: View {
                         }
                         .buttonStyle(.plain)
                         .help("恢复到进行中")
-                        Text(item.title)
-                            .font(.system(size: 14))
-                            .foregroundStyle(.secondary)
-                            .strikethrough()
+                        itemTitle(item, completed: true)
                         Spacer(minLength: 0)
+                        if editingItemID == item.id {
+                            editorControls(for: item)
+                        } else {
+                            itemActionsMenu(for: item)
+                        }
                     }
                     .padding(.vertical, 4)
                     .padding(.horizontal, 4)
@@ -166,7 +174,7 @@ struct TodoView: View {
         }
     }
 
-    private var undoBar: some View {
+    private var completionUndoBar: some View {
         HStack(spacing: 6) {
             Image(systemName: "checkmark")
             Text("已标记完成")
@@ -182,8 +190,118 @@ struct TodoView: View {
         .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
     }
 
+    private var deleteUndoBar: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "trash")
+            Text("已删除")
+            if let item = model.lastDeletedItem {
+                Text(item.title)
+                    .lineLimit(1)
+                    .foregroundStyle(.primary)
+            }
+            Spacer()
+            Button("撤销", action: model.undoLastDelete)
+                .buttonStyle(.plain)
+                .fontWeight(.semibold)
+        }
+        .font(.system(size: 13))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
+    }
+
     private var highPriorityAccent: Color {
         Color(red: 0.86, green: 0.24, blue: 0.18)
+    }
+
+    @ViewBuilder
+    private func itemTitle(_ item: TodoItem, completed: Bool) -> some View {
+        if editingItemID == item.id {
+            TextField("待办内容", text: $editingTitle)
+                .font(.system(size: completed ? 14 : 15))
+                .textFieldStyle(.plain)
+                .focused($focusedEditorID, equals: item.id)
+                .onSubmit { commitEditing(item) }
+                .onExitCommand(perform: cancelEditing)
+        } else {
+            Text(item.title)
+                .font(.system(size: completed ? 14 : 15))
+                .fontWeight(!completed && item.needsHighPriorityHighlight ? .medium : .regular)
+                .foregroundStyle(completed ? .secondary : .primary)
+                .strikethrough(completed)
+                .multilineTextAlignment(.leading)
+                .textSelection(.enabled)
+        }
+    }
+
+    private func editorControls(for item: TodoItem) -> some View {
+        HStack(spacing: 5) {
+            Button {
+                commitEditing(item)
+            } label: {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            }
+            .buttonStyle(.plain)
+            .help("保存修改")
+
+            Button(action: cancelEditing) {
+                Image(systemName: "xmark.circle")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("取消修改")
+        }
+    }
+
+    private func itemActionsMenu(for item: TodoItem) -> some View {
+        Menu {
+            Button("编辑", systemImage: "pencil") {
+                beginEditing(item)
+            }
+            if item.completedAt != nil {
+                Button("恢复到进行中", systemImage: "arrow.uturn.backward") {
+                    model.restore(item)
+                }
+            }
+            Divider()
+            Button("删除", systemImage: "trash", role: .destructive) {
+                if editingItemID == item.id {
+                    cancelEditing()
+                }
+                model.delete(item)
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 22, height: 24)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help("编辑或删除")
+    }
+
+    private func beginEditing(_ item: TodoItem) {
+        editingItemID = item.id
+        editingTitle = item.title
+        DispatchQueue.main.async {
+            focusedEditorID = item.id
+        }
+    }
+
+    private func commitEditing(_ item: TodoItem) {
+        let trimmed = editingTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        model.rename(item, title: trimmed)
+        cancelEditing()
+    }
+
+    private func cancelEditing() {
+        editingItemID = nil
+        editingTitle = ""
+        focusedEditorID = nil
     }
 
     private func priorityMenu(for item: TodoItem) -> some View {

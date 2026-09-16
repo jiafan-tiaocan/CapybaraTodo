@@ -7,6 +7,7 @@ final class TodoModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var documentURL: URL
     @Published private(set) var lastCompletedItemID: UUID?
+    @Published private(set) var lastDeletedItem: TodoItem?
 
     private let store = MarkdownTodoStore()
     private let documentPathKey = "todoDocumentPath"
@@ -38,6 +39,11 @@ final class TodoModel: ObservableObject {
     var canUndoLastCompletion: Bool {
         guard let id = lastCompletedItemID else { return false }
         return items.contains { $0.id == id && $0.completedAt != nil }
+    }
+
+    var canUndoLastDelete: Bool {
+        guard let item = lastDeletedItem else { return false }
+        return !items.contains { $0.id == item.id }
     }
 
     func add(title: String) {
@@ -79,6 +85,35 @@ final class TodoModel: ObservableObject {
         persist()
     }
 
+    func rename(_ item: TodoItem, title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        reloadIfChanged()
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index].title = trimmed
+        persist()
+    }
+
+    func delete(_ item: TodoItem) {
+        reloadIfChanged()
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        let deleted = items.remove(at: index)
+        lastDeletedItem = deleted
+        if lastCompletedItemID == deleted.id {
+            lastCompletedItemID = nil
+        }
+        persist()
+    }
+
+    func undoLastDelete() {
+        reloadIfChanged()
+        guard let deleted = lastDeletedItem,
+              !items.contains(where: { $0.id == deleted.id }) else { return }
+        items.append(deleted)
+        lastDeletedItem = nil
+        persist()
+    }
+
     func reload() {
         do {
             items = try store.load(from: documentURL)
@@ -105,6 +140,9 @@ final class TodoModel: ObservableObject {
             lastKnownDocumentData = data
             if !canUndoLastCompletion {
                 lastCompletedItemID = nil
+            }
+            if !canUndoLastDelete {
+                lastDeletedItem = nil
             }
             errorMessage = nil
         } catch {
