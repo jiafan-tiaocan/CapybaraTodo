@@ -2,6 +2,10 @@ import AppKit
 import Combine
 import SwiftUI
 
+enum TodoPanelLayout {
+    static let width: CGFloat = 468
+}
+
 @main
 struct DesktopTodoDaemonApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -38,7 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var model: TodoModel?
     private var modelChangeSubscription: AnyCancellable?
     private var completedSectionExpanded = false
-    private let panelWidth: CGFloat = 360
+    private let panelWidth = TodoPanelLayout.width
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let model = TodoModel()
@@ -132,7 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     private func preferredPanelHeight(for model: TodoModel) -> CGFloat {
         let visibleRows = min(max(model.activeItems.count, 1), 8)
-        let rowHeight: CGFloat = 40
+        let rowHeight: CGFloat = 36
         let baseHeight: CGFloat = 132
         let completedHeaderHeight: CGFloat = model.completedCount > 0 ? 34 : 0
         let completedRows = completedSectionExpanded ? min(model.completedCount, 8) : 0

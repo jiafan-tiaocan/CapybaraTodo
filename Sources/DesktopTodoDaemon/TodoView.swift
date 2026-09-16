@@ -31,7 +31,7 @@ struct TodoView: View {
             }
         }
         .padding(14)
-        .frame(width: 360)
+        .frame(width: TodoPanelLayout.width)
         .frame(maxHeight: .infinity)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
