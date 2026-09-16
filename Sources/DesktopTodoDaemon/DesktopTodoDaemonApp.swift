@@ -48,9 +48,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 self?.resizePanelToFitContent()
             },
             onListContentHeightChanged: { [weak self] height in
-                guard let self,
-                      abs((self.measuredListContentHeight ?? 0) - height) > 0.5 else { return }
-                self.measuredListContentHeight = height
+                guard let self else { return }
+                let stableHeight = ceil(height)
+                guard abs((self.measuredListContentHeight ?? 0) - stableHeight) > 1 else { return }
+                self.measuredListContentHeight = stableHeight
                 self.resizePanelToFitContent()
             }
         ))
@@ -234,8 +235,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     private func resizePanelToFitContent() {
         guard let panel, let model else { return }
-        let targetHeight = preferredPanelHeight(for: model)
-        guard abs(panel.frame.height - targetHeight) > 0.5 else { return }
+        let targetHeight = ceil(preferredPanelHeight(for: model))
+        guard abs(panel.frame.height - targetHeight) > 1 else { return }
 
         let topRight = NSPoint(x: panel.frame.maxX, y: panel.frame.maxY)
         let targetFrame = NSRect(
