@@ -13,6 +13,10 @@ struct MarkdownTodoStore {
     func load(from url: URL) throws -> [TodoItem] {
         guard FileManager.default.fileExists(atPath: url.path) else { return [] }
         let content = try String(contentsOf: url, encoding: .utf8)
+        return load(content: content)
+    }
+
+    func load(content: String) -> [TodoItem] {
         var items: [TodoItem] = []
         var inCompletedSection = false
 

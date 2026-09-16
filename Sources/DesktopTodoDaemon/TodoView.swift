@@ -4,12 +4,17 @@ struct TodoView: View {
     @ObservedObject var model: TodoModel
     @State private var newTodo = ""
     @State private var isHovering = false
+    @State private var showCompleted = false
+    private let documentPoller = Timer.publish(every: 0.7, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             header
             Divider().opacity(0.25)
             todoList
+            if model.canUndoLastCompletion {
+                undoBar
+            }
             addField
             if let error = model.errorMessage {
                 Text(error)
@@ -18,21 +23,23 @@ struct TodoView: View {
                     .lineLimit(2)
             }
         }
-        .padding(16)
-        .frame(width: 340)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(12)
+        .frame(width: 320)
+        .frame(maxHeight: .infinity)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(.white.opacity(isHovering ? 0.28 : 0.14), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.18), radius: 22, y: 10)
         .onHover { isHovering = $0 }
+        .onReceive(documentPoller) { _ in model.reloadIfChanged() }
     }
 
     private var header: some View {
         HStack(spacing: 8) {
             Text("待办")
-                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
             Text("\(model.activeItems.count)")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
@@ -54,40 +61,95 @@ struct TodoView: View {
 
     @ViewBuilder
     private var todoList: some View {
-        if model.activeItems.isEmpty {
-            Text("没有待办事项")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 80)
-        } else {
-            ScrollView {
-                LazyVStack(spacing: 4) {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 2) {
+                if model.activeItems.isEmpty {
+                    Text("没有待办事项")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 70)
+                } else {
                     ForEach(model.activeItems) { item in
-                        Button {
-                            withAnimation(.easeOut(duration: 0.18)) {
-                                model.complete(item)
-                            }
-                        } label: {
-                            HStack(alignment: .top, spacing: 10) {
+                        HStack(alignment: .top, spacing: 8) {
+                            Button {
+                                withAnimation(.easeOut(duration: 0.18)) {
+                                    model.complete(item)
+                                }
+                            } label: {
                                 Image(systemName: "circle")
-                                    .font(.system(size: 15))
+                                    .font(.system(size: 13))
                                     .padding(.top, 2)
-                                Text(item.title)
-                                    .font(.system(size: 14))
-                                    .multilineTextAlignment(.leading)
-                                Spacer(minLength: 0)
                             }
-                            .contentShape(Rectangle())
-                            .padding(.vertical, 7)
-                            .padding(.horizontal, 5)
+                            .buttonStyle(.plain)
+                            .help("标记为已完成")
+                            Text(item.title)
+                                .font(.system(size: 13))
+                                .multilineTextAlignment(.leading)
+                                .textSelection(.enabled)
+                            Spacer(minLength: 0)
                         }
-                        .buttonStyle(.plain)
-                        .help("点击标记为已完成")
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 3)
                     }
                 }
+
+                completedSection
             }
-            .frame(maxHeight: 300)
         }
+        .frame(maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var completedSection: some View {
+        if model.completedCount > 0 {
+            Divider().opacity(0.18).padding(.vertical, 4)
+            DisclosureGroup(isExpanded: $showCompleted) {
+                ForEach(model.completedItems) { item in
+                    HStack(alignment: .top, spacing: 8) {
+                        Button {
+                            withAnimation(.easeOut(duration: 0.18)) {
+                                model.restore(item)
+                            }
+                        } label: {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                                .padding(.top, 2)
+                        }
+                        .buttonStyle(.plain)
+                        .help("恢复到进行中")
+                        Text(item.title)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .strikethrough()
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 3)
+                    .padding(.horizontal, 3)
+                }
+            } label: {
+                Text("已完成 \(model.completedCount)")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .disclosureGroupStyle(.automatic)
+        }
+    }
+
+    private var undoBar: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark")
+            Text("已标记完成")
+            Spacer()
+            Button("撤销", action: model.undoLastCompletion)
+                .buttonStyle(.plain)
+                .fontWeight(.semibold)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var addField: some View {
@@ -104,8 +166,8 @@ struct TodoView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(10)
-        .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 10))
+        .padding(8)
+        .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 9))
     }
 
     private func addTodo() {
@@ -113,4 +175,3 @@ struct TodoView: View {
         newTodo = ""
     }
 }
-
