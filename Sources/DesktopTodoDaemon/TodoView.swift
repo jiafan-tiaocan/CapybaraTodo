@@ -4,6 +4,7 @@ struct TodoView: View {
     @ObservedObject var model: TodoModel
     let onHide: () -> Void
     let onSectionExpansionChanged: (Bool, Bool) -> Void
+    let onListContentHeightChanged: (CGFloat) -> Void
     @State private var newTodo = ""
     @State private var isHovering = false
     @State private var showPendingRestart = false
@@ -44,6 +45,10 @@ struct TodoView: View {
         .shadow(color: .black.opacity(0.18), radius: 22, y: 10)
         .onHover { isHovering = $0 }
         .onReceive(documentPoller) { _ in model.reloadIfChanged() }
+        .onPreferenceChange(TodoListContentHeightKey.self) { height in
+            guard height > 0 else { return }
+            onListContentHeightChanged(height)
+        }
         .onChange(of: showPendingRestart) { _, isExpanded in
             onSectionExpansionChanged(isExpanded, showCompleted)
         }
@@ -192,6 +197,14 @@ struct TodoView: View {
 
                 pendingRestartSection
                 completedSection
+            }
+            .background {
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: TodoListContentHeightKey.self,
+                        value: proxy.size.height
+                    )
+                }
             }
         }
         .frame(maxHeight: .infinity)
@@ -546,5 +559,13 @@ struct TodoView: View {
     private func addTodo() {
         model.add(title: newTodo)
         newTodo = ""
+    }
+}
+
+private struct TodoListContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

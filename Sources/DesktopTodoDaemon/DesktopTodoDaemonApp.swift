@@ -43,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var modelChangeSubscription: AnyCancellable?
     private var pendingRestartSectionExpanded = false
     private var completedSectionExpanded = false
+    private var measuredListContentHeight: CGFloat?
     private let panelWidth = TodoPanelLayout.width
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -58,6 +59,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 self?.pendingRestartSectionExpanded = pendingRestartExpanded
                 self?.completedSectionExpanded = completedExpanded
                 self?.resizePanelToFitContent()
+            },
+            onListContentHeightChanged: { [weak self] height in
+                guard let self,
+                      abs((self.measuredListContentHeight ?? 0) - height) > 0.5 else { return }
+                self.measuredListContentHeight = height
+                self.resizePanelToFitContent()
             }
         ))
         let panelSize = NSSize(width: panelWidth, height: preferredPanelHeight(for: model))
@@ -148,19 +155,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         let completedRowsHeight = CGFloat(completedRows) * 44
         let hasFeedback = model.canUndoLastCompletion || model.canUndoLastDelete
         let undoHeight: CGFloat = hasFeedback ? 40 : 0
-        return min(
-            520,
-            max(
-                190,
-                baseHeight
-                    + CGFloat(visibleRows) * rowHeight
-                    + pendingRestartHeaderHeight
-                    + pendingRestartRowsHeight
-                    + completedHeaderHeight
-                    + completedRowsHeight
-                    + undoHeight
-            )
-        )
+        let estimatedListHeight = CGFloat(visibleRows) * rowHeight
+            + pendingRestartHeaderHeight
+            + pendingRestartRowsHeight
+            + completedHeaderHeight
+            + completedRowsHeight
+        let listHeight = measuredListContentHeight ?? estimatedListHeight
+        return min(520, max(190, baseHeight + listHeight + undoHeight))
     }
 
     private func resizePanelToFitContent() {
