@@ -102,10 +102,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     private func configureStatusItem() {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        let autosaveName = "com.jiafan.desktop-todo-daemon.status-item"
+        let preferredPositionKey = "NSStatusItem Preferred Position \(autosaveName)"
+        if UserDefaults.standard.object(forKey: preferredPositionKey) == nil {
+            // New status items are otherwise inserted at the far-left edge of the
+            // status area, which can leave them hidden behind a MacBook notch.
+            UserDefaults.standard.set(0, forKey: preferredPositionKey)
+        }
+
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.autosaveName = autosaveName
+        item.isVisible = true
         if let button = item.button {
             button.image = CapybaraStatusIcon.image
-            button.imagePosition = .imageOnly
+            button.image?.size = NSSize(width: 18, height: 18)
+            button.imagePosition = .imageLeading
+            button.imageHugsTitle = true
             button.toolTip = "卡皮巴拉待办"
             button.setAccessibilityLabel("卡皮巴拉待办")
         }
@@ -145,6 +157,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private func refreshStatusMenu() {
         let action = panelVisible ? "隐藏待办" : "显示待办"
         visibilityMenuItem?.title = "\(action) · \(activeCount) 项"
+        statusItem?.button?.title = "\(activeCount)"
     }
 
     private func position(_ panel: NSPanel) {
@@ -162,11 +175,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if panel.isVisible {
             hidePanel()
         } else {
-            panel.orderFrontRegardless()
-            NSApp.activate(ignoringOtherApps: true)
-            panelVisible = true
-            refreshStatusMenu()
+            showPanel()
         }
+    }
+
+    func applicationShouldHandleReopen(
+        _ sender: NSApplication,
+        hasVisibleWindows flag: Bool
+    ) -> Bool {
+        showPanel()
+        return false
     }
 
     @objc func openTodoDocument() {
@@ -176,6 +194,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private func hidePanel() {
         panel?.orderOut(nil)
         panelVisible = false
+        refreshStatusMenu()
+    }
+
+    private func showPanel() {
+        panel?.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
+        panelVisible = true
         refreshStatusMenu()
     }
 

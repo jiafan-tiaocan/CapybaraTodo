@@ -77,7 +77,7 @@ struct TodoView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .help("收起到菜单栏")
+            .help("收起到菜单栏；再次打开应用也可恢复")
             Menu {
                 Button("打开记录文档", action: model.openDocument)
                 Button("更换记录文档…", action: model.chooseDocument)
