@@ -87,7 +87,7 @@ struct TodoView: View {
 
     @ViewBuilder
     private var todoList: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             LazyVStack(alignment: .leading, spacing: 2) {
                 if model.activeItems.isEmpty {
                     Text("没有待办事项")
@@ -195,7 +195,27 @@ struct TodoView: View {
     private var completedSection: some View {
         if model.completedCount > 0 {
             Divider().opacity(0.18).padding(.vertical, 4)
-            DisclosureGroup(isExpanded: $showCompleted) {
+            Button {
+                withAnimation(.easeOut(duration: 0.18)) {
+                    showCompleted.toggle()
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .rotationEffect(.degrees(showCompleted ? 90 : 0))
+                    Text("已完成 \(model.completedCount)")
+                        .font(.system(size: 13, weight: .medium))
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 26, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(showCompleted ? "收起已完成" : "展开已完成")
+
+            if showCompleted {
                 ForEach(model.completedItems) { item in
                     HStack(alignment: .top, spacing: 8) {
                         Button {
@@ -230,12 +250,7 @@ struct TodoView: View {
                     .padding(.vertical, 4)
                     .padding(.horizontal, 4)
                 }
-            } label: {
-                Text("已完成 \(model.completedCount)")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.secondary)
             }
-            .disclosureGroupStyle(.automatic)
         }
     }
 
