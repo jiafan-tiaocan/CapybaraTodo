@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var panel: FloatingPanel?
     private var model: TodoModel?
     private var modelChangeSubscription: AnyCancellable?
+    private let panelWidth: CGFloat = 360
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let model = TodoModel()
@@ -45,7 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         let hostingView = NSHostingView(rootView: TodoView(model: model) { [weak self] in
             self?.hidePanel()
         })
-        let panelSize = NSSize(width: 320, height: preferredPanelHeight(for: model))
+        let panelSize = NSSize(width: panelWidth, height: preferredPanelHeight(for: model))
         hostingView.setFrameSize(panelSize)
         hostingView.autoresizingMask = [.width, .height]
 
@@ -123,11 +124,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     private func preferredPanelHeight(for model: TodoModel) -> CGFloat {
         let visibleRows = min(max(model.activeItems.count, 1), 8)
-        let rowHeight: CGFloat = 32
-        let baseHeight: CGFloat = 104
-        let completedHeaderHeight: CGFloat = model.completedCount > 0 ? 30 : 0
-        let undoHeight: CGFloat = model.canUndoLastCompletion ? 34 : 0
-        return min(420, max(170, baseHeight + CGFloat(visibleRows) * rowHeight + completedHeaderHeight + undoHeight))
+        let rowHeight: CGFloat = 40
+        let baseHeight: CGFloat = 124
+        let completedHeaderHeight: CGFloat = model.completedCount > 0 ? 34 : 0
+        let undoHeight: CGFloat = model.canUndoLastCompletion ? 40 : 0
+        return min(520, max(190, baseHeight + CGFloat(visibleRows) * rowHeight + completedHeaderHeight + undoHeight))
     }
 
     private func resizePanelToFitContent() {
@@ -137,9 +138,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         let topRight = NSPoint(x: panel.frame.maxX, y: panel.frame.maxY)
         let targetFrame = NSRect(
-            x: topRight.x - 320,
+            x: topRight.x - panelWidth,
             y: topRight.y - targetHeight,
-            width: 320,
+            width: panelWidth,
             height: targetHeight
         )
         let targetScreen = panel.screen ?? bestScreen(for: panel.frame) ?? NSScreen.main

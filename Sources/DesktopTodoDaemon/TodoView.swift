@@ -9,7 +9,7 @@ struct TodoView: View {
     private let documentPoller = Timer.publish(every: 0.7, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             header
             Divider().opacity(0.25)
             todoList
@@ -24,12 +24,12 @@ struct TodoView: View {
                     .lineLimit(2)
             }
         }
-        .padding(12)
-        .frame(width: 320)
+        .padding(14)
+        .frame(width: 360)
         .frame(maxHeight: .infinity)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(.white.opacity(isHovering ? 0.28 : 0.14), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.18), radius: 22, y: 10)
@@ -40,9 +40,9 @@ struct TodoView: View {
     private var header: some View {
         HStack(spacing: 8) {
             Text("待办")
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .font(.system(size: 18, weight: .semibold, design: .rounded))
             Text("\(model.activeItems.count)")
-                .font(.caption.monospacedDigit())
+                .font(.system(size: 13, design: .monospaced))
                 .foregroundStyle(.secondary)
             Spacer()
             Button(action: onHide) {
@@ -84,21 +84,21 @@ struct TodoView: View {
                                 }
                             } label: {
                                 Image(systemName: "circle")
-                                    .font(.system(size: 13))
+                                    .font(.system(size: 15))
                                     .foregroundStyle(item.needsHighPriorityHighlight ? highPriorityAccent : .secondary)
                                     .padding(.top, 2)
                             }
                             .buttonStyle(.plain)
                             .help("标记为已完成")
                             Text(item.title)
-                                .font(.system(size: 13))
+                                .font(.system(size: 15))
                                 .fontWeight(item.needsHighPriorityHighlight ? .medium : .regular)
                                 .multilineTextAlignment(.leading)
                                 .textSelection(.enabled)
                             Spacer(minLength: 0)
                             if item.needsHighPriorityHighlight && item.priority != .p0 {
                                 Text("重点")
-                                    .font(.system(size: 9, weight: .semibold))
+                                    .font(.system(size: 10, weight: .semibold))
                                     .foregroundStyle(highPriorityAccent)
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 2)
@@ -106,16 +106,16 @@ struct TodoView: View {
                             }
                             priorityMenu(for: item)
                         }
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 3)
+                        .padding(.vertical, 5)
+                        .padding(.horizontal, 4)
                         .background {
                             if item.needsHighPriorityHighlight {
-                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
                                     .fill(highPriorityAccent.opacity(0.075))
                                     .overlay(alignment: .leading) {
                                         Capsule()
                                             .fill(highPriorityAccent)
-                                            .frame(width: 3)
+                                            .frame(width: 3.5)
                                             .padding(.vertical, 4)
                                     }
                             }
@@ -142,24 +142,24 @@ struct TodoView: View {
                             }
                         } label: {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 13))
+                                .font(.system(size: 15))
                                 .foregroundStyle(.secondary)
                                 .padding(.top, 2)
                         }
                         .buttonStyle(.plain)
                         .help("恢复到进行中")
                         Text(item.title)
-                            .font(.system(size: 12))
+                            .font(.system(size: 14))
                             .foregroundStyle(.secondary)
                             .strikethrough()
                         Spacer(minLength: 0)
                     }
-                    .padding(.vertical, 3)
-                    .padding(.horizontal, 3)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 4)
                 }
             } label: {
                 Text("已完成 \(model.completedCount)")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.secondary)
             }
             .disclosureGroupStyle(.automatic)
@@ -175,7 +175,7 @@ struct TodoView: View {
                 .buttonStyle(.plain)
                 .fontWeight(.semibold)
         }
-        .font(.caption)
+        .font(.system(size: 13))
         .foregroundStyle(.secondary)
         .padding(.horizontal, 9)
         .padding(.vertical, 6)
@@ -202,12 +202,12 @@ struct TodoView: View {
         } label: {
             if item.priority == .none {
                 Image(systemName: "flag")
-                    .font(.system(size: 11))
+                    .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
-                    .frame(width: 22, height: 20)
+                    .frame(width: 26, height: 24)
             } else {
                 Text(item.priority.label)
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
                     .foregroundStyle(priorityColor(item.priority))
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
@@ -233,6 +233,7 @@ struct TodoView: View {
             Image(systemName: "plus")
                 .foregroundStyle(.secondary)
             TextField("添加待办…", text: $newTodo)
+                .font(.system(size: 15))
                 .textFieldStyle(.plain)
                 .onSubmit(addTodo)
             if !newTodo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -242,8 +243,8 @@ struct TodoView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(8)
-        .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 9))
+        .padding(10)
+        .background(.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 10))
     }
 
     private func addTodo() {
